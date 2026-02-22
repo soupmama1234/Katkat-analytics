@@ -103,10 +103,8 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
   <div class="empty-sub" id="empty-sub">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
   <div style="display:flex;flex-direction:column;gap:12px;width:100%;align-items:center" id="empty-btns">
     <button class="btn-primary" id="btn-supabase" style="display:none" onclick="loadSupabase()">⚡ ดึงข้อมูลจาก Supabase</button>
-    <label class="btn-secondary" for="csv-input">
-  📂 Upload CSV Backup
-</label>
-<input id="csv-input" type="file" accept=".csv" style="display:block;opacity:0;position:absolute" onchange="loadCSV(event)">
+    <button class="btn-secondary" onclick="document.getElementById('csv-file').click()">📂 Upload CSV Backup</button>
+    <input id="csv-file" type="file" accept=".csv" style="position:absolute;left:-9999px;opacity:0" onchange="loadCSV(event)">
   </div>
 </div>
 
@@ -120,7 +118,7 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
     </div>
     <div class="header-right">
       <button class="icon-btn" id="btn-refresh" onclick="loadSupabase()" style="display:none">🔄</button>
-      <label class="icon-btn">📂<input type="file" accept=".csv" onchange="loadCSV(event)"></label>
+      <button class="icon-btn" onclick="document.getElementById('csv-file').click()">📂</button>
     </div>
   </div>
 
@@ -233,8 +231,8 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
 
 <script>
 // ── CONFIG ───────────────────────────────────────────
-const SUPABASE_URL = "https://uhruejkycwcxjhcokbfm.supabase.co";  // ใส่ค่าจาก POS
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";  // ใส่ค่าจาก POS
+const SUPABASE_URL = "";  // ใส่ค่าจาก POS
+const SUPABASE_KEY = "";  // ใส่ค่าจาก POS
 
 // ── STATE ────────────────────────────────────────────
 let allOrders = [];
@@ -481,8 +479,4 @@ function renderOverview(s) {
           <span class="ch-name" style="color:${color}">${ch.toUpperCase()}</span>
           <span style="font-family:monospace">฿${fmt(d.actual)} <span style="color:#444;font-size:11px">(${d.count} บิล)</span></span>
         </div>
-        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
-      </div>`;
-  });
-
-  // trend 
+        <div class="bar-bg"><div cla
