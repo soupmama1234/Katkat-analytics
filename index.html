@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>KATKAT Analytics</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -14,7 +14,7 @@
   --text:#f0f0f0;--muted:#555;--muted2:#888;
   --orange:#f5a623;--green:#4caf50;--blue:#2196f3;--red:#ef5350;
 }
-html,body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;min-height:100vh}
+html,body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;min-height:100vh; overflow-x: hidden;}
 button{font-family:inherit;cursor:pointer}
 input[type=file]{display:none}
 ::-webkit-scrollbar{width:4px}
@@ -28,7 +28,11 @@ input[type=file]{display:none}
 .header-left h1{font-size:22px;font-weight:700}
 .header-left .sub{font-size:11px;color:#444;margin-top:2px}
 .header-right{display:flex;gap:8px}
-.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted2);padding:8px 12px;border-radius:8px;font-size:14px}
+
+/* Button Fixes */
+.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted2);padding:8px 12px;border-radius:8px;font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+.upload-label { position: relative; overflow: hidden; cursor: pointer; }
+.upload-label input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
 
 /* Tabs */
 .tabs{display:flex;padding:16px 16px 0;overflow-x:auto;gap:0;border-bottom:1px solid var(--bg3);margin-top:4px}
@@ -45,72 +49,34 @@ input[type=file]{display:none}
 .stat-sub{font-size:12px;color:#555;margin-top:4px}
 .section-title{font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
 
-/* Channel bars */
-.ch-row{margin-bottom:14px}
-.ch-meta{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
-.ch-name{font-weight:600}
-.bar-bg{height:6px;background:#0a0a0a;border-radius:3px;overflow:hidden}
-.bar-fill{height:100%;border-radius:3px;transition:width 0.8s ease}
-
-/* Table */
+/* Table & Charts */
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:8px 0;color:#555;font-weight:500;border-bottom:1px solid var(--border)}
 th.r,td.r{text-align:right}
 td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
-td.mono{font-family:'IBM Plex Mono',monospace;color:var(--orange);font-weight:600}
-td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:600}
-
-/* Period toggle */
-.toggle{display:flex;gap:8px;margin-bottom:16px}
-.toggle-btn{background:var(--bg3);border:1px solid var(--border);color:#666;padding:6px 16px;border-radius:20px;font-size:12px;font-family:inherit;font-weight:600}
-.toggle-btn.active{background:var(--orange);color:#000;border-color:var(--orange)}
+.chart-wrap{position:relative;margin-top:8px}
 
 /* Empty / loading */
 #empty{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center}
-.empty-icon{font-size:48px}
-.empty-title{font-size:20px;font-weight:700;color:var(--orange)}
-.empty-sub{font-size:13px;color:#555;max-width:300px;line-height:1.6}
 .btn-primary{background:var(--orange);color:#000;border:none;padding:14px 20px;border-radius:10px;font-size:14px;font-weight:700;width:100%;max-width:320px}
-.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:14px 20px;border-radius:10px;font-size:14px;font-weight:600;width:100%;max-width:320px;display:flex;align-items:center;justify-content:center;gap:8px}
-.error{color:var(--red);font-size:13px}
-
-/* Top menu rank */
-.menu-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--bg3);gap:10px}
-.rank{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;width:24px;flex-shrink:0}
-.rank.gold{color:var(--orange)}
-.rank.silver{color:#888}
-.rank.bronze{color:#cd7f32}
-.menu-name{flex:1;font-size:14px;color:#ddd}
-.menu-qty{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:600;font-size:13px}
-
-/* Chart container */
-.chart-wrap{position:relative;margin-top:8px}
-
-/* Peak hour row */
-.hour-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bg3)}
-.hour-label{color:#aaa;font-size:14px}
-.hour-stats{text-align:right}
-.hour-orders{font-family:'IBM Plex Mono',monospace;color:var(--orange);font-weight:600;font-size:13px}
-.hour-rev{font-size:11px;color:#555}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:14px 20px;border-radius:10px;font-size:14px;font-weight:600;width:100%;max-width:320px;display:flex;align-items:center;justify-content:center;gap:8px; cursor:pointer;}
 </style>
 </head>
 <body>
 
-<!-- EMPTY STATE -->
 <div id="empty">
-  <div class="empty-icon">📊</div>
-  <div class="empty-title">KATKAT Analytics</div>
-  <div class="empty-sub" id="empty-sub">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
+  <div style="font-size:48px">📊</div>
+  <div style="font-size:20px; font-weight:700; color:var(--orange)">KATKAT Analytics</div>
+  <div id="empty-sub" style="font-size:13px; color:#555; max-width:300px; line-height:1.6">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
   <div style="display:flex;flex-direction:column;gap:12px;width:100%;align-items:center" id="empty-btns">
     <button class="btn-primary" id="btn-supabase" style="display:none" onclick="loadSupabase()">⚡ ดึงข้อมูลจาก Supabase</button>
-    <div style="position:relative;width:100%;max-width:320px">
-      <div class="btn-secondary" style="pointer-events:none">📂 Upload CSV Backup</div>
-      <input type="file" accept=".csv" onchange="loadCSV(event)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0">
-    </div>
+    <label class="btn-secondary upload-label">
+      📂 Upload CSV Backup
+      <input type="file" accept=".csv" onchange="loadCSV(event)">
+    </label>
   </div>
 </div>
 
-<!-- MAIN APP (hidden until data loaded) -->
 <div id="app" style="display:none">
   <div class="header">
     <div class="header-left">
@@ -120,10 +86,10 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
     </div>
     <div class="header-right">
       <button class="icon-btn" id="btn-refresh" onclick="loadSupabase()" style="display:none">🔄</button>
-      <div style="position:relative">
-        <div class="icon-btn" style="pointer-events:none">📂</div>
-        <input type="file" accept=".csv" onchange="loadCSV(event)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0">
-      </div>
+      <label class="icon-btn upload-label">
+        📂
+        <input type="file" accept=".csv" onchange="loadCSV(event)">
+      </label>
     </div>
   </div>
 
@@ -132,56 +98,31 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
     <button class="tab" onclick="switchTab('daily')">รายวัน</button>
     <button class="tab" onclick="switchTab('menu')">เมนู</button>
     <button class="tab" onclick="switchTab('channel')">ช่องทาง</button>
-    <button class="tab" onclick="switchTab('hour')">ช่วงเวลา</button>
   </div>
 
-  <!-- TAB: OVERVIEW -->
   <div id="tab-overview" class="tab-content">
     <div class="grid-2" style="margin-top:16px">
       <div class="stat-card" style="border-top:3px solid var(--orange)">
         <div class="stat-label">ยอดรับจริงรวม</div>
-        <div class="stat-value" id="s-revenue"></div>
+        <div class="stat-value" id="s-revenue">฿0</div>
       </div>
       <div class="stat-card" style="border-top:3px solid var(--orange)">
         <div class="stat-label">จำนวนบิล</div>
-        <div class="stat-value" id="s-count"></div>
-        <div class="stat-sub">ออเดอร์ทั้งหมด</div>
-      </div>
-      <div class="stat-card" style="border-top:3px solid var(--green)">
-        <div class="stat-label">เฉลี่ยต่อบิล</div>
-        <div class="stat-value" style="color:var(--green)" id="s-avg"></div>
-      </div>
-      <div class="stat-card" style="border-top:3px solid var(--blue)">
-        <div class="stat-label">บิล vs รับจริง</div>
-        <div class="stat-value" style="color:var(--blue)" id="s-pct"></div>
-        <div class="stat-sub" id="s-billed"></div>
+        <div class="stat-value" id="s-count">0</div>
       </div>
     </div>
     <div class="section-pad">
-      <div class="card" style="margin-bottom:16px">
-        <div class="section-title">รายได้แยกช่องทาง</div>
-        <div id="channel-bars"></div>
-      </div>
-      <div class="card">
-        <div class="section-title">ยอดขาย 30 วันล่าสุด</div>
-        <div class="chart-wrap"><canvas id="chart-trend" height="140"></canvas></div>
-      </div>
+        <div class="card">
+            <div class="section-title">ยอดขาย 30 วันล่าสุด</div>
+            <div class="chart-wrap"><canvas id="chart-trend" height="140"></canvas></div>
+        </div>
     </div>
   </div>
-
-  <!-- TAB: DAILY -->
+  
   <div id="tab-daily" class="tab-content" style="display:none">
     <div class="section-pad">
-      <div class="toggle">
-        <button class="toggle-btn active" id="tog-daily" onclick="setPeriod('daily')">รายวัน</button>
-        <button class="toggle-btn" id="tog-weekly" onclick="setPeriod('weekly')">รายสัปดาห์</button>
-      </div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="section-title" id="daily-chart-title">ยอดขายรายวัน (30 วัน)</div>
-        <div class="chart-wrap"><canvas id="chart-daily" height="180"></canvas></div>
-      </div>
       <div class="card">
-        <div class="section-title">ตารางสรุป</div>
+        <div class="section-title">ตารางสรุปรายวัน</div>
         <table>
           <thead><tr><th>วันที่</th><th class="r">ออเดอร์</th><th class="r">ยอดรับ</th></tr></thead>
           <tbody id="daily-table"></tbody>
@@ -190,90 +131,45 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
     </div>
   </div>
 
-  <!-- TAB: MENU -->
-  <div id="tab-menu" class="tab-content" style="display:none">
-    <div class="section-pad">
-      <div class="card" style="margin-bottom:16px">
-        <div class="section-title">เมนูขายดี Top 10</div>
-        <div class="chart-wrap"><canvas id="chart-menu" height="260"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="section-title">ตารางเมนูขายดี</div>
-        <div id="menu-list"></div>
-      </div>
-    </div>
+  <div id="tab-menu" class="tab-content" style="display:none; padding:16px;">
+      <div class="card"><div class="section-title">เมนูขายดี</div><div id="menu-list"></div></div>
+  </div>
+  <div id="tab-channel" class="tab-content" style="display:none; padding:16px;">
+      <div class="card"><div class="section-title">สัดส่วนช่องทาง</div><canvas id="chart-pie" height="200"></canvas></div>
   </div>
 
-  <!-- TAB: CHANNEL -->
-  <div id="tab-channel" class="tab-content" style="display:none">
-    <div class="section-pad">
-      <div class="grid-2" id="channel-cards" style="margin:0 0 16px"></div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="section-title">สัดส่วนยอดรับจริง</div>
-        <div class="chart-wrap" style="max-width:300px;margin:0 auto"><canvas id="chart-pie" height="200"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="section-title">ยอดบิล vs ยอดรับจริง</div>
-        <div class="chart-wrap"><canvas id="chart-compare" height="180"></canvas></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB: HOUR -->
-  <div id="tab-hour" class="tab-content" style="display:none">
-    <div class="section-pad">
-      <div class="card" style="margin-bottom:16px">
-        <div class="section-title">ออเดอร์แยกตามช่วงเวลา</div>
-        <div class="chart-wrap"><canvas id="chart-hour" height="180"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="section-title">ช่วงเวลาขายดีสุด Top 5</div>
-        <div id="peak-list"></div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
-// ── CONFIG ───────────────────────────────────────────
-const SUPABASE_URL = "";  // ใส่ค่าจาก POS
-const SUPABASE_KEY = "";  // ใส่ค่าจาก POS
+// ── CONFIG (ใส่ของจริงของคุณตรงนี้) ───────────────────
+const SUPABASE_URL = "https://xxxx.supabase.co"; 
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiI...";
 
 // ── STATE ────────────────────────────────────────────
 let allOrders = [];
-let currentPeriod = "daily";
 let charts = {};
-
-const CH_COLORS = {
-  pos: "#ffffff", grab: "#00B14F", lineman: "#00A84F", shopee: "#EE4D2D"
-};
 const fmt = n => (n||0).toLocaleString("th-TH");
-const fmtDate = s => new Date(s).toLocaleDateString("th-TH",{day:"2-digit",month:"short"});
 
 // ── INIT ─────────────────────────────────────────────
 window.onload = () => {
-  if (SUPABASE_URL && SUPABASE_KEY) {
+  if (SUPABASE_URL && SUPABASE_KEY && !SUPABASE_URL.includes("xxxx")) {
     document.getElementById("btn-supabase").style.display = "block";
     document.getElementById("btn-refresh").style.display = "block";
-    loadSupabase();
   }
 };
 
-// ── LOAD SUPABASE ────────────────────────────────────
+// ── LOADERS ──────────────────────────────────────────
 async function loadSupabase() {
-  setLoading("กำลังดึงข้อมูลจาก Supabase...");
+  setLoading("กำลังดึงข้อมูล...");
   try {
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
     if (error) throw error;
     allOrders = data.map(normalizeRow);
     showApp("supabase");
-  } catch(e) {
-    setError("เชื่อม Supabase ไม่ได้: " + e.message);
-  }
+  } catch(e) { setError("Error: " + e.message); }
 }
 
-// ── LOAD CSV ─────────────────────────────────────────
 function loadCSV(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -284,67 +180,50 @@ function loadCSV(e) {
       const rows = parseCSV(ev.target.result);
       allOrders = rows.map(normalizeRow);
       showApp("csv");
-    } catch(err) { setError("อ่านไฟล์ไม่ได้: " + err.message); }
+    } catch(err) { setError("ไฟล์ผิดพลาด"); }
   };
-  reader.readAsText(file, "UTF-8");
-  e.target.value = "";
+  reader.readAsText(file, "UTF-8"); // หรือเปลี่ยนเป็น "windows-874" ถ้าภาษาไทยเพี้ยน
 }
 
 function parseCSV(text) {
   const lines = text.trim().split("\n");
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim());
+  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g,""));
   return lines.slice(1).map(line => {
-    const vals = [];
-    let cur = "", inQ = false;
-    for (let c of line) {
-      if (c === '"') inQ = !inQ;
-      else if (c === ',' && !inQ) { vals.push(cur); cur = ""; }
-      else cur += c;
-    }
-    vals.push(cur);
+    const vals = line.split(",").map(v => v.trim().replace(/"/g,""));
     const obj = {};
-    headers.forEach((h,i) => obj[h] = (vals[i]||"").trim());
+    headers.forEach((h,i) => obj[h] = vals[i]);
     return obj;
-  }).filter(r => r["ช่องทาง"] || r["channel"]);
+  });
 }
 
 function normalizeRow(row) {
   return {
-    id: row.id || Math.random(),
     time: row.created_at || row["วันที่/เวลา"] || "",
     channel: (row.channel || row["ช่องทาง"] || "pos").toLowerCase(),
-    payment: row.payment || row["ประเภทชำระเงิน"] || "",
     total: Number(row.total || row["ยอดรวมเมนู"] || 0),
     actual: Number(row.actual_amount || row["ยอดรับจริง"] || 0),
-    items: typeof row.items === "string" ? row.items : (row["รายการสินค้า"] || ""),
+    items: row.items || row["รายการสินค้า"] || ""
   };
 }
 
-// ── SHOW APP ─────────────────────────────────────────
+// ── UI CONTROL ────────────────────────────────────────
 function showApp(source) {
   document.getElementById("empty").style.display = "none";
   document.getElementById("app").style.display = "block";
-  document.getElementById("data-source-label").textContent =
-    (source === "supabase" ? "⚡ Supabase" : "📂 CSV") + " · " + allOrders.length + " orders";
+  document.getElementById("data-source-label").textContent = source.toUpperCase() + " Mode";
   renderAll();
 }
 
 function setLoading(msg) {
-  document.getElementById("empty").style.display = "flex";
-  document.getElementById("app").style.display = "none";
   document.getElementById("empty-sub").textContent = msg;
   document.getElementById("empty-btns").style.display = "none";
 }
 
 function setError(msg) {
-  document.getElementById("empty").style.display = "flex";
-  document.getElementById("app").style.display = "none";
-  document.getElementById("empty-sub").innerHTML = `<span class="error">${msg}</span>`;
+  document.getElementById("empty-sub").innerHTML = `<span style="color:red">${msg}</span>`;
   document.getElementById("empty-btns").style.display = "flex";
 }
 
-// ── TABS ─────────────────────────────────────────────
 function switchTab(id) {
   document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
   document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
@@ -352,133 +231,37 @@ function switchTab(id) {
   event.target.classList.add("active");
 }
 
-function setPeriod(p) {
-  currentPeriod = p;
-  document.getElementById("tog-daily").classList.toggle("active", p === "daily");
-  document.getElementById("tog-weekly").classList.toggle("active", p === "weekly");
-  document.getElementById("daily-chart-title").textContent =
-    p === "daily" ? "ยอดขายรายวัน (30 วัน)" : "ยอดขายรายสัปดาห์";
-  renderDaily();
-}
-
-// ── COMPUTE ──────────────────────────────────────────
-function compute() {
-  const orders = allOrders;
-  const totalRevenue = orders.reduce((s,o) => s + o.actual, 0);
-  const totalBilled = orders.reduce((s,o) => s + o.total, 0);
-  const avgBill = orders.length ? totalRevenue / orders.length : 0;
-
-  // by channel
-  const byChannel = {};
-  orders.forEach(o => {
-    if (!byChannel[o.channel]) byChannel[o.channel] = {count:0,total:0,actual:0};
-    byChannel[o.channel].count++;
-    byChannel[o.channel].total += o.total;
-    byChannel[o.channel].actual += o.actual;
-  });
-
-  // daily
-  const byDay = {};
-  orders.forEach(o => {
-    if (!o.time) return;
-    const day = new Date(o.time).toISOString().split("T")[0];
-    if (!byDay[day]) byDay[day] = {date:day,revenue:0,orders:0};
-    byDay[day].revenue += o.actual;
-    byDay[day].orders++;
-  });
-  const dailyData = Object.values(byDay).sort((a,b) => a.date.localeCompare(b.date)).slice(-30);
-
-  // weekly
-  const byWeek = {};
-  orders.forEach(o => {
-    if (!o.time) return;
-    const d = new Date(o.time);
-    const wk = Math.ceil(d.getDate()/7);
-    const key = d.getFullYear()+"-"+String(d.getMonth()).padStart(2,"0")+"-"+wk;
-    const label = d.toLocaleDateString("th-TH",{month:"short",year:"2-digit"}) + " W" + wk;
-    if (!byWeek[key]) byWeek[key] = {key,label,revenue:0,orders:0};
-    byWeek[key].revenue += o.actual;
-    byWeek[key].orders++;
-  });
-  const weeklyData = Object.values(byWeek).sort((a,b) => a.key.localeCompare(b.key)).slice(-8);
-
-  // hourly
-  const byHour = Array.from({length:24},(_,i) => ({hour:i,orders:0,revenue:0}));
-  orders.forEach(o => {
-    if (!o.time) return;
-    const h = new Date(o.time).getHours();
-    byHour[h].orders++;
-    byHour[h].revenue += o.actual;
-  });
-
-  // top menus
-  const menuCount = {};
-  orders.forEach(o => {
-    const raw = String(o.items || "");
-    // รองรับ JSON array format และ CSV format
-    let items = [];
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        parsed.forEach(item => {
-          if (item.name) menuCount[item.name] = (menuCount[item.name]||0) + (item.qty||1);
-        });
-        return;
-      }
-    } catch {}
-    // CSV format: "A1 ข้าวx2 | A2 ข้าวx1"
-    const matches = raw.match(/([^|]+?)x(\d+)/g) || [];
-    matches.forEach(m => {
-      const p = m.match(/(.+?)x(\d+)/);
-      if (p) {
-        const name = p[1].replace(/["'\[\]{}]/g,"").trim();
-        if (name && name.length > 1) menuCount[name] = (menuCount[name]||0) + Number(p[2]);
-      }
-    });
-  });
-  const topMenus = Object.entries(menuCount).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));
-
-  return {totalRevenue,totalBilled,avgBill,byChannel,dailyData,weeklyData,byHour,topMenus,orderCount:orders.length};
-}
-
-// ── RENDER ALL ────────────────────────────────────────
+// ── RENDER ────────────────────────────────────────────
 function renderAll() {
-  const s = compute();
-  renderOverview(s);
-  renderDaily();
-  renderMenu(s);
-  renderChannel(s);
-  renderHour(s);
+    const totalRevenue = allOrders.reduce((s,o) => s + o.actual, 0);
+    document.getElementById("s-revenue").textContent = "฿" + fmt(totalRevenue);
+    document.getElementById("s-count").textContent = allOrders.length;
+    
+    // Render Trend Chart
+    const byDay = {};
+    allOrders.forEach(o => {
+        const d = o.time.split("T")[0];
+        byDay[d] = (byDay[d]||0) + o.actual;
+    });
+    const days = Object.keys(byDay).sort().slice(-7);
+    const vals = days.map(d => byDay[d]);
+
+    if(charts.trend) charts.trend.destroy();
+    charts.trend = new Chart(document.getElementById("chart-trend"), {
+        type: 'line',
+        data: {
+            labels: days.map(d => d.split("-")[2]),
+            datasets: [{ data: vals, borderColor: '#f5a623', tension: 0.4, fill: false }]
+        },
+        options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
+    });
+
+    // Daily Table
+    const tb = document.getElementById("daily-table");
+    tb.innerHTML = Object.entries(byDay).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,v]) => `
+        <tr><td>${d}</td><td class="r">-</td><td class="r">฿${fmt(v)}</td></tr>
+    `).join("");
 }
-
-function destroyChart(id) {
-  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
-}
-
-const chartDefaults = {
-  plugins: { legend: { display: false } },
-  scales: {
-    x: { grid: { display: false }, ticks: { color: "#555", font: { size: 10 } }, border: { display: false } },
-    y: { grid: { color: "#1a1a1a" }, ticks: { color: "#555", font: { size: 10 } }, border: { display: false } }
-  }
-};
-
-// OVERVIEW
-function renderOverview(s) {
-  document.getElementById("s-revenue").textContent = "฿" + fmt(s.totalRevenue);
-  document.getElementById("s-count").textContent = s.orderCount;
-  document.getElementById("s-avg").textContent = "฿" + fmt(Math.round(s.avgBill));
-  const pct = s.totalBilled > 0 ? Math.round((s.totalRevenue/s.totalBilled)*100) : 0;
-  document.getElementById("s-pct").textContent = pct + "%";
-  document.getElementById("s-billed").textContent = "บิล ฿" + fmt(s.totalBilled);
-
-  // channel bars
-  const el = document.getElementById("channel-bars");
-  el.innerHTML = "";
-  Object.entries(s.byChannel).forEach(([ch, d]) => {
-    const color = CH_COLORS[ch] || "#888";
-    const pct = s.totalRevenue > 0 ? (d.actual/s.totalRevenue)*100 : 0;
-    el.innerHTML += `
-      <div class="ch-row">
-        <div class="ch-meta">
-        
+</script>
+</body>
+</html>
