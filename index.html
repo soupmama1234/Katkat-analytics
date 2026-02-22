@@ -4,586 +4,485 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KATKAT Analytics</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.0/umd/Recharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0a0a;
-    --bg2: #111111;
-    --bg3: #1a1a1a;
-    --border: #222;
-    --text: #f0f0f0;
-    --muted: #555;
-    --muted2: #888;
-    --orange: #f5a623;
-    --orange2: #e8941a;
-    --green: #4caf50;
-    --blue: #2196f3;
-    --red: #ef5350;
-    --purple: #ab47bc;
-  }
-  html, body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans Thai', sans-serif; min-height: 100vh; }
-  #root { min-height: 100vh; }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: var(--bg2); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  input[type=file] { display: none; }
-  * { -webkit-tap-highlight-color: transparent; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--border:#222;
+  --text:#f0f0f0;--muted:#555;--muted2:#888;
+  --orange:#f5a623;--green:#4caf50;--blue:#2196f3;--red:#ef5350;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+input[type=file]{display:none}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Layout */
+#app{max-width:800px;margin:0 auto;padding-bottom:80px}
+.header{padding:20px 16px 0;display:flex;justify-content:space-between;align-items:flex-start}
+.header-left .eyebrow{font-size:11px;color:var(--orange);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}
+.header-left h1{font-size:22px;font-weight:700}
+.header-left .sub{font-size:11px;color:#444;margin-top:2px}
+.header-right{display:flex;gap:8px}
+.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted2);padding:8px 12px;border-radius:8px;font-size:14px}
+
+/* Tabs */
+.tabs{display:flex;padding:16px 16px 0;overflow-x:auto;gap:0;border-bottom:1px solid var(--bg3);margin-top:4px}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:8px 14px;font-size:13px;font-family:inherit;white-space:nowrap;transition:all 0.2s}
+.tab.active{border-bottom-color:var(--orange);color:var(--orange);font-weight:600}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.section-pad{padding:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
+.stat-label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1.2}
+.stat-sub{font-size:12px;color:#555;margin-top:4px}
+.section-title{font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
+
+/* Channel bars */
+.ch-row{margin-bottom:14px}
+.ch-meta{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.ch-name{font-weight:600}
+.bar-bg{height:6px;background:#0a0a0a;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width 0.8s ease}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 0;color:#555;font-weight:500;border-bottom:1px solid var(--border)}
+th.r,td.r{text-align:right}
+td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
+td.mono{font-family:'IBM Plex Mono',monospace;color:var(--orange);font-weight:600}
+td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:600}
+
+/* Period toggle */
+.toggle{display:flex;gap:8px;margin-bottom:16px}
+.toggle-btn{background:var(--bg3);border:1px solid var(--border);color:#666;padding:6px 16px;border-radius:20px;font-size:12px;font-family:inherit;font-weight:600}
+.toggle-btn.active{background:var(--orange);color:#000;border-color:var(--orange)}
+
+/* Empty / loading */
+#empty{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center}
+.empty-icon{font-size:48px}
+.empty-title{font-size:20px;font-weight:700;color:var(--orange)}
+.empty-sub{font-size:13px;color:#555;max-width:300px;line-height:1.6}
+.btn-primary{background:var(--orange);color:#000;border:none;padding:14px 20px;border-radius:10px;font-size:14px;font-weight:700;width:100%;max-width:320px}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:14px 20px;border-radius:10px;font-size:14px;font-weight:600;width:100%;max-width:320px;display:flex;align-items:center;justify-content:center;gap:8px}
+.error{color:var(--red);font-size:13px}
+
+/* Top menu rank */
+.menu-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--bg3);gap:10px}
+.rank{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;width:24px;flex-shrink:0}
+.rank.gold{color:var(--orange)}
+.rank.silver{color:#888}
+.rank.bronze{color:#cd7f32}
+.menu-name{flex:1;font-size:14px;color:#ddd}
+.menu-qty{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:600;font-size:13px}
+
+/* Chart container */
+.chart-wrap{position:relative;margin-top:8px}
+
+/* Peak hour row */
+.hour-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bg3)}
+.hour-label{color:#aaa;font-size:14px}
+.hour-stats{text-align:right}
+.hour-orders{font-family:'IBM Plex Mono',monospace;color:var(--orange);font-weight:600;font-size:13px}
+.hour-rev{font-size:11px;color:#555}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useEffect, useMemo, useCallback } = React;
-const {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} = Recharts;
 
-// ── CONFIG ──────────────────────────────────────────────
-// ใส่ค่าตรงนี้ หรือใช้ CSV upload
-const SUPABASE_URL = "https://uhruejkycwcxjhcokbfm.supabase.co";   // วางค่าจาก POS .env
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";   // วางค่าจาก POS .env
+<!-- EMPTY STATE -->
+<div id="empty">
+  <div class="empty-icon">📊</div>
+  <div class="empty-title">KATKAT Analytics</div>
+  <div class="empty-sub" id="empty-sub">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
+  <div style="display:flex;flex-direction:column;gap:12px;width:100%;align-items:center" id="empty-btns">
+    <button class="btn-primary" id="btn-supabase" style="display:none" onclick="loadSupabase()">⚡ ดึงข้อมูลจาก Supabase</button>
+    <label class="btn-secondary">
+      📂 Upload CSV Backup
+      <input type="file" accept=".csv" onchange="loadCSV(event)">
+    </label>
+  </div>
+</div>
 
-const COLORS = {
-  pos: "#ffffff", grab: "#00B14F", lineman: "#00A84F", shopee: "#EE4D2D",
-  orange: "#f5a623", green: "#4caf50", blue: "#2196f3", purple: "#ab47bc",
+<!-- MAIN APP (hidden until data loaded) -->
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="header-left">
+      <div class="eyebrow">KAT KAT KATSU</div>
+      <h1>Analytics</h1>
+      <div class="sub" id="data-source-label"></div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="btn-refresh" onclick="loadSupabase()" style="display:none">🔄</button>
+      <label class="icon-btn">📂<input type="file" accept=".csv" onchange="loadCSV(event)"></label>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview')">ภาพรวม</button>
+    <button class="tab" onclick="switchTab('daily')">รายวัน</button>
+    <button class="tab" onclick="switchTab('menu')">เมนู</button>
+    <button class="tab" onclick="switchTab('channel')">ช่องทาง</button>
+    <button class="tab" onclick="switchTab('hour')">ช่วงเวลา</button>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div id="tab-overview" class="tab-content">
+    <div class="grid-2" style="margin-top:16px">
+      <div class="stat-card" style="border-top:3px solid var(--orange)">
+        <div class="stat-label">ยอดรับจริงรวม</div>
+        <div class="stat-value" id="s-revenue"></div>
+      </div>
+      <div class="stat-card" style="border-top:3px solid var(--orange)">
+        <div class="stat-label">จำนวนบิล</div>
+        <div class="stat-value" id="s-count"></div>
+        <div class="stat-sub">ออเดอร์ทั้งหมด</div>
+      </div>
+      <div class="stat-card" style="border-top:3px solid var(--green)">
+        <div class="stat-label">เฉลี่ยต่อบิล</div>
+        <div class="stat-value" style="color:var(--green)" id="s-avg"></div>
+      </div>
+      <div class="stat-card" style="border-top:3px solid var(--blue)">
+        <div class="stat-label">บิล vs รับจริง</div>
+        <div class="stat-value" style="color:var(--blue)" id="s-pct"></div>
+        <div class="stat-sub" id="s-billed"></div>
+      </div>
+    </div>
+    <div class="section-pad">
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">รายได้แยกช่องทาง</div>
+        <div id="channel-bars"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ยอดขาย 30 วันล่าสุด</div>
+        <div class="chart-wrap"><canvas id="chart-trend" height="140"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: DAILY -->
+  <div id="tab-daily" class="tab-content" style="display:none">
+    <div class="section-pad">
+      <div class="toggle">
+        <button class="toggle-btn active" id="tog-daily" onclick="setPeriod('daily')">รายวัน</button>
+        <button class="toggle-btn" id="tog-weekly" onclick="setPeriod('weekly')">รายสัปดาห์</button>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title" id="daily-chart-title">ยอดขายรายวัน (30 วัน)</div>
+        <div class="chart-wrap"><canvas id="chart-daily" height="180"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ตารางสรุป</div>
+        <table>
+          <thead><tr><th>วันที่</th><th class="r">ออเดอร์</th><th class="r">ยอดรับ</th></tr></thead>
+          <tbody id="daily-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MENU -->
+  <div id="tab-menu" class="tab-content" style="display:none">
+    <div class="section-pad">
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">เมนูขายดี Top 10</div>
+        <div class="chart-wrap"><canvas id="chart-menu" height="260"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ตารางเมนูขายดี</div>
+        <div id="menu-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CHANNEL -->
+  <div id="tab-channel" class="tab-content" style="display:none">
+    <div class="section-pad">
+      <div class="grid-2" id="channel-cards" style="margin:0 0 16px"></div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">สัดส่วนยอดรับจริง</div>
+        <div class="chart-wrap" style="max-width:300px;margin:0 auto"><canvas id="chart-pie" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ยอดบิล vs ยอดรับจริง</div>
+        <div class="chart-wrap"><canvas id="chart-compare" height="180"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: HOUR -->
+  <div id="tab-hour" class="tab-content" style="display:none">
+    <div class="section-pad">
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">ออเดอร์แยกตามช่วงเวลา</div>
+        <div class="chart-wrap"><canvas id="chart-hour" height="180"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ช่วงเวลาขายดีสุด Top 5</div>
+        <div id="peak-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────
+const SUPABASE_URL = "https://uhruejkycwcxjhcokbfm.supabase.co";  // ใส่ค่าจาก POS
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";  // ใส่ค่าจาก POS
+
+// ── STATE ────────────────────────────────────────────
+let allOrders = [];
+let currentPeriod = "daily";
+let charts = {};
+
+const CH_COLORS = {
+  pos: "#ffffff", grab: "#00B14F", lineman: "#00A84F", shopee: "#EE4D2D"
+};
+const fmt = n => (n||0).toLocaleString("th-TH");
+const fmtDate = s => new Date(s).toLocaleDateString("th-TH",{day:"2-digit",month:"short"});
+
+// ── INIT ─────────────────────────────────────────────
+window.onload = () => {
+  if (SUPABASE_URL && SUPABASE_KEY) {
+    document.getElementById("btn-supabase").style.display = "block";
+    document.getElementById("btn-refresh").style.display = "block";
+    loadSupabase();
+  }
 };
 
-// ── HELPERS ─────────────────────────────────────────────
-const fmt = (n) => (n || 0).toLocaleString("th-TH");
-const fmtDate = (d) => new Date(d).toLocaleDateString("th-TH", { day: "2-digit", month: "short" });
+// ── LOAD SUPABASE ────────────────────────────────────
+async function loadSupabase() {
+  setLoading("กำลังดึงข้อมูลจาก Supabase...");
+  try {
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    allOrders = data.map(normalizeRow);
+    showApp("supabase");
+  } catch(e) {
+    setError("เชื่อม Supabase ไม่ได้: " + e.message);
+  }
+}
+
+// ── LOAD CSV ─────────────────────────────────────────
+function loadCSV(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  setLoading("กำลังอ่านไฟล์ CSV...");
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const rows = parseCSV(ev.target.result);
+      allOrders = rows.map(normalizeRow);
+      showApp("csv");
+    } catch(err) { setError("อ่านไฟล์ไม่ได้: " + err.message); }
+  };
+  reader.readAsText(file, "UTF-8");
+  e.target.value = "";
+}
 
 function parseCSV(text) {
   const lines = text.trim().split("\n");
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
+  const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim());
   return lines.slice(1).map(line => {
-    const vals = line.match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+    const vals = [];
+    let cur = "", inQ = false;
+    for (let c of line) {
+      if (c === '"') inQ = !inQ;
+      else if (c === ',' && !inQ) { vals.push(cur); cur = ""; }
+      else cur += c;
+    }
+    vals.push(cur);
     const obj = {};
-    headers.forEach((h, i) => {
-      obj[h] = (vals[i] || "").replace(/"/g, "").trim();
-    });
+    headers.forEach((h,i) => obj[h] = (vals[i]||"").trim());
     return obj;
-  }).filter(r => r["ช่องทาง"]);
+  }).filter(r => r["ช่องทาง"] || r["channel"]);
 }
 
 function normalizeRow(row) {
-  // รองรับทั้ง CSV format และ Supabase format
   return {
     id: row.id || Math.random(),
     time: row.created_at || row["วันที่/เวลา"] || "",
     channel: (row.channel || row["ช่องทาง"] || "pos").toLowerCase(),
     payment: row.payment || row["ประเภทชำระเงิน"] || "",
     total: Number(row.total || row["ยอดรวมเมนู"] || 0),
-    actualAmount: Number(row.actual_amount || row["ยอดรับจริง"] || 0),
-    items: row.items || row["รายการสินค้า"] || "",
+    actual: Number(row.actual_amount || row["ยอดรับจริง"] || 0),
+    items: typeof row.items === "string" ? row.items : (row["รายการสินค้า"] || ""),
   };
 }
 
-// ── ANALYTICS ENGINE ────────────────────────────────────
-function computeStats(orders) {
-  if (!orders.length) return null;
+// ── SHOW APP ─────────────────────────────────────────
+function showApp(source) {
+  document.getElementById("empty").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("data-source-label").textContent =
+    (source === "supabase" ? "⚡ Supabase" : "📂 CSV") + " · " + allOrders.length + " orders";
+  renderAll();
+}
 
-  // ยอดรวม
-  const totalRevenue = orders.reduce((s, o) => s + o.actualAmount, 0);
-  const totalBilled = orders.reduce((s, o) => s + o.total, 0);
+function setLoading(msg) {
+  document.getElementById("empty").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("empty-sub").textContent = msg;
+  document.getElementById("empty-btns").style.display = "none";
+}
+
+function setError(msg) {
+  document.getElementById("empty").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("empty-sub").innerHTML = `<span class="error">${msg}</span>`;
+  document.getElementById("empty-btns").style.display = "flex";
+}
+
+// ── TABS ─────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
+  document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
+  document.getElementById("tab-" + id).style.display = "block";
+  event.target.classList.add("active");
+}
+
+function setPeriod(p) {
+  currentPeriod = p;
+  document.getElementById("tog-daily").classList.toggle("active", p === "daily");
+  document.getElementById("tog-weekly").classList.toggle("active", p === "weekly");
+  document.getElementById("daily-chart-title").textContent =
+    p === "daily" ? "ยอดขายรายวัน (30 วัน)" : "ยอดขายรายสัปดาห์";
+  renderDaily();
+}
+
+// ── COMPUTE ──────────────────────────────────────────
+function compute() {
+  const orders = allOrders;
+  const totalRevenue = orders.reduce((s,o) => s + o.actual, 0);
+  const totalBilled = orders.reduce((s,o) => s + o.total, 0);
   const avgBill = orders.length ? totalRevenue / orders.length : 0;
 
-  // แยกช่องทาง
+  // by channel
   const byChannel = {};
   orders.forEach(o => {
-    if (!byChannel[o.channel]) byChannel[o.channel] = { count: 0, total: 0, actual: 0 };
+    if (!byChannel[o.channel]) byChannel[o.channel] = {count:0,total:0,actual:0};
     byChannel[o.channel].count++;
     byChannel[o.channel].total += o.total;
-    byChannel[o.channel].actual += o.actualAmount;
+    byChannel[o.channel].actual += o.actual;
   });
 
-  // รายวัน (30 วันล่าสุด)
+  // daily
   const byDay = {};
   orders.forEach(o => {
     if (!o.time) return;
     const day = new Date(o.time).toISOString().split("T")[0];
-    if (!byDay[day]) byDay[day] = { date: day, revenue: 0, orders: 0 };
-    byDay[day].revenue += o.actualAmount;
+    if (!byDay[day]) byDay[day] = {date:day,revenue:0,orders:0};
+    byDay[day].revenue += o.actual;
     byDay[day].orders++;
   });
-  const dailyData = Object.values(byDay).sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
+  const dailyData = Object.values(byDay).sort((a,b) => a.date.localeCompare(b.date)).slice(-30);
 
-  // เวลาที่ขายดี (hour)
-  const byHour = Array(24).fill(0).map((_, i) => ({ hour: i, orders: 0, revenue: 0 }));
-  orders.forEach(o => {
-    if (!o.time) return;
-    const h = new Date(o.time).getHours();
-    byHour[h].orders++;
-    byHour[h].revenue += o.actualAmount;
-  });
-  const peakHours = byHour.filter(h => h.orders > 0);
-
-  // เมนูขายดี Top 10
-  const menuCount = {};
-  orders.forEach(o => {
-    const raw = typeof o.items === "string" ? o.items : JSON.stringify(o.items || "");
-    const matches = raw.match(/([^|,\[\]{}]+?)x(\d+)/g) || [];
-    matches.forEach(m => {
-      const parts = m.match(/(.+?)x(\d+)/);
-      if (parts) {
-        const name = parts[1].replace(/["']/g, "").trim();
-        const qty = Number(parts[2]);
-        if (name && name.length > 1) {
-          menuCount[name] = (menuCount[name] || 0) + qty;
-        }
-      }
-    });
-  });
-  const topMenus = Object.entries(menuCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([name, qty]) => ({ name, qty }));
-
-  // รายสัปดาห์
+  // weekly
   const byWeek = {};
   orders.forEach(o => {
     if (!o.time) return;
     const d = new Date(o.time);
-    const week = `${d.getFullYear()}-W${String(Math.ceil((d.getDate()) / 7)).padStart(2, "0")}`;
-    const mo = d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" });
-    const label = `${mo} W${Math.ceil(d.getDate() / 7)}`;
-    if (!byWeek[week]) byWeek[week] = { week, label, revenue: 0, orders: 0 };
-    byWeek[week].revenue += o.actualAmount;
-    byWeek[week].orders++;
+    const wk = Math.ceil(d.getDate()/7);
+    const key = d.getFullYear()+"-"+String(d.getMonth()).padStart(2,"0")+"-"+wk;
+    const label = d.toLocaleDateString("th-TH",{month:"short",year:"2-digit"}) + " W" + wk;
+    if (!byWeek[key]) byWeek[key] = {key,label,revenue:0,orders:0};
+    byWeek[key].revenue += o.actual;
+    byWeek[key].orders++;
   });
-  const weeklyData = Object.values(byWeek).sort((a, b) => a.week.localeCompare(b.week)).slice(-8);
+  const weeklyData = Object.values(byWeek).sort((a,b) => a.key.localeCompare(b.key)).slice(-8);
 
-  return { totalRevenue, totalBilled, avgBill, byChannel, dailyData, weeklyData, peakHours, topMenus, orderCount: orders.length };
+  // hourly
+  const byHour = Array.from({length:24},(_,i) => ({hour:i,orders:0,revenue:0}));
+  orders.forEach(o => {
+    if (!o.time) return;
+    const h = new Date(o.time).getHours();
+    byHour[h].orders++;
+    byHour[h].revenue += o.actual;
+  });
+
+  // top menus
+  const menuCount = {};
+  orders.forEach(o => {
+    const raw = String(o.items || "");
+    // รองรับ JSON array format และ CSV format
+    let items = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(item => {
+          if (item.name) menuCount[item.name] = (menuCount[item.name]||0) + (item.qty||1);
+        });
+        return;
+      }
+    } catch {}
+    // CSV format: "A1 ข้าวx2 | A2 ข้าวx1"
+    const matches = raw.match(/([^|]+?)x(\d+)/g) || [];
+    matches.forEach(m => {
+      const p = m.match(/(.+?)x(\d+)/);
+      if (p) {
+        const name = p[1].replace(/["'\[\]{}]/g,"").trim();
+        if (name && name.length > 1) menuCount[name] = (menuCount[name]||0) + Number(p[2]);
+      }
+    });
+  });
+  const topMenus = Object.entries(menuCount).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));
+
+  return {totalRevenue,totalBilled,avgBill,byChannel,dailyData,weeklyData,byHour,topMenus,orderCount:orders.length};
 }
 
-// ── COMPONENTS ──────────────────────────────────────────
-const Card = ({ children, style = {} }) => (
-  <div style={{ background: "#111", border: "1px solid #222", borderRadius: 12, padding: 16, ...style }}>
-    {children}
-  </div>
-);
+// ── RENDER ALL ────────────────────────────────────────
+function renderAll() {
+  const s = compute();
+  renderOverview(s);
+  renderDaily();
+  renderMenu(s);
+  renderChannel(s);
+  renderHour(s);
+}
 
-const StatCard = ({ label, value, sub, color = "#fff", accent }) => (
-  <Card style={{ borderTop: `3px solid ${accent || color}` }}>
-    <div style={{ fontSize: 11, color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
-    <div style={{ fontSize: 24, fontWeight: 700, color, fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.2 }}>{value}</div>
-    {sub && <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{sub}</div>}
-  </Card>
-);
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
 
-const SectionTitle = ({ children }) => (
-  <div style={{ fontSize: 13, fontWeight: 600, color: "#666", textTransform: "uppercase", letterSpacing: 2, marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #1a1a1a" }}>
-    {children}
-  </div>
-);
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
-      <div style={{ color: "#888", marginBottom: 6 }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color || "#fff" }}>
-          {p.name}: <span style={{ fontFamily: "monospace", fontWeight: 600 }}>฿{fmt(p.value)}</span>
-        </div>
-      ))}
-    </div>
-  );
+const chartDefaults = {
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { display: false }, ticks: { color: "#555", font: { size: 10 } }, border: { display: false } },
+    y: { grid: { color: "#1a1a1a" }, ticks: { color: "#555", font: { size: 10 } }, border: { display: false } }
+  }
 };
 
-// ── MAIN APP ────────────────────────────────────────────
-export default function App() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [source, setSource] = useState("none"); // none | supabase | csv
-  const [tab, setTab] = useState("overview"); // overview | daily | menu | channel | hour
-  const [period, setPeriod] = useState("daily"); // daily | weekly
+// OVERVIEW
+function renderOverview(s) {
+  document.getElementById("s-revenue").textContent = "฿" + fmt(s.totalRevenue);
+  document.getElementById("s-count").textContent = s.orderCount;
+  document.getElementById("s-avg").textContent = "฿" + fmt(Math.round(s.avgBill));
+  const pct = s.totalBilled > 0 ? Math.round((s.totalRevenue/s.totalBilled)*100) : 0;
+  document.getElementById("s-pct").textContent = pct + "%";
+  document.getElementById("s-billed").textContent = "บิล ฿" + fmt(s.totalBilled);
 
-  const hasSupabase = SUPABASE_URL && SUPABASE_KEY;
-
-  // โหลดจาก Supabase
-  const loadFromSupabase = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      setOrders(data.map(normalizeRow));
-      setSource("supabase");
-    } catch (e) {
-      setError("เชื่อม Supabase ไม่ได้: " + e.message);
-    } finally { setLoading(false); }
-  }, []);
-
-  // โหลดจาก CSV
-  const loadFromCSV = useCallback((e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setLoading(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const rows = parseCSV(ev.target.result);
-        setOrders(rows.map(normalizeRow));
-        setSource("csv");
-      } catch (e) { setError("อ่านไฟล์ไม่ได้: " + e.message); }
-      finally { setLoading(false); }
-    };
-    reader.readAsText(file, "UTF-8");
-    e.target.value = "";
-  }, []);
-
-  useEffect(() => {
-    if (hasSupabase) loadFromSupabase();
-  }, []);
-
-  const stats = useMemo(() => computeStats(orders), [orders]);
-
-  // ── RENDER: NO DATA ──
-  if (!orders.length && !loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: 24 }}>
-      <div style={{ fontSize: 40 }}>📊</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: "#f5a623" }}>KATKAT Analytics</div>
-      <div style={{ fontSize: 13, color: "#555", textAlign: "center", maxWidth: 300 }}>
-        {error ? <span style={{ color: "#ef5350" }}>{error}</span> : "เลือกแหล่งข้อมูลเพื่อเริ่มต้น"}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 320 }}>
-        {hasSupabase && (
-          <button onClick={loadFromSupabase} style={btnStyle("#f5a623", "#000")}>
-            ⚡ ดึงข้อมูลจาก Supabase
-          </button>
-        )}
-        <label style={btnStyle("#222", "#fff", "1px solid #333")}>
-          📂 Upload CSV Backup
-          <input type="file" accept=".csv" onChange={loadFromCSV} />
-        </label>
-        {!hasSupabase && (
-          <div style={{ fontSize: 11, color: "#444", textAlign: "center", lineHeight: 1.6 }}>
-            หรือใส่ SUPABASE_URL และ SUPABASE_KEY<br/>ในไฟล์ HTML บรรทัด 40-41
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontSize: 28 }}>⏳</div>
-      <div style={{ color: "#555", fontSize: 14 }}>กำลังโหลดข้อมูล...</div>
-    </div>
-  );
-
-  const tabs = [
-    { id: "overview", label: "ภาพรวม" },
-    { id: "daily", label: "รายวัน" },
-    { id: "menu", label: "เมนู" },
-    { id: "channel", label: "ช่องทาง" },
-    { id: "hour", label: "ช่วงเวลา" },
-  ];
-
-  return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 0 80px" }}>
-      {/* HEADER */}
-      <div style={{ padding: "20px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 11, color: "#f5a623", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 }}>KAT KAT KATSU</div>
-          <div style={{ fontSize: 22, fontWeight: 700 }}>Analytics</div>
-          <div style={{ fontSize: 11, color: "#444", marginTop: 2 }}>
-            {source === "supabase" ? "⚡ Supabase" : "📂 CSV"} · {orders.length} orders
-          </div>
+  // channel bars
+  const el = document.getElementById("channel-bars");
+  el.innerHTML = "";
+  Object.entries(s.byChannel).forEach(([ch, d]) => {
+    const color = CH_COLORS[ch] || "#888";
+    const pct = s.totalRevenue > 0 ? (d.actual/s.totalRevenue)*100 : 0;
+    el.innerHTML += `
+      <div class="ch-row">
+        <div class="ch-meta">
+          <span class="ch-name" style="color:${color}">${ch.toUpperCase()}</span>
+          <span style="font-family:monospace">฿${fmt(d.actual)} <span style="color:#444;font-size:11px">(${d.count} บิล)</span></span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {hasSupabase && (
-            <button onClick={loadFromSupabase} style={{ background: "#1a1a1a", border: "1px solid #333", color: "#888", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>
-              🔄
-            </button>
-          )}
-          <label style={{ background: "#1a1a1a", border: "1px solid #333", color: "#888", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>
-            📂
-            <input type="file" accept=".csv" onChange={loadFromCSV} />
-          </label>
-        </div>
-      </div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>`;
+  });
 
-      {/* TABS */}
-      <div style={{ display: "flex", gap: 0, padding: "16px 16px 0", overflowX: "auto" }}>
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            background: "none", border: "none", borderBottom: tab === t.id ? "2px solid #f5a623" : "2px solid transparent",
-            color: tab === t.id ? "#f5a623" : "#555", padding: "8px 14px", cursor: "pointer",
-            fontSize: 13, fontFamily: "inherit", fontWeight: tab === t.id ? 600 : 400, whiteSpace: "nowrap"
-          }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <div style={{ height: 1, background: "#1a1a1a", margin: "0 16px" }} />
-
-      <div style={{ padding: "16px" }}>
-
-        {/* ── TAB: OVERVIEW ── */}
-        {tab === "overview" && stats && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* stat cards 2x2 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <StatCard label="ยอดรับจริงรวม" value={`฿${fmt(stats.totalRevenue)}`} accent="#f5a623" />
-              <StatCard label="จำนวนบิล" value={stats.orderCount} sub="ออเดอร์ทั้งหมด" accent="#f5a623" />
-              <StatCard label="เฉลี่ยต่อบิล" value={`฿${fmt(Math.round(stats.avgBill))}`} accent="#4caf50" color="#4caf50" />
-              <StatCard label="ยอดบิล vs รับจริง" value={`${stats.totalBilled > 0 ? Math.round((stats.totalRevenue / stats.totalBilled) * 100) : 0}%`} sub={`บิล ฿${fmt(stats.totalBilled)}`} accent="#2196f3" color="#2196f3" />
-            </div>
-
-            {/* channel summary */}
-            <Card>
-              <SectionTitle>รายได้แยกช่องทาง</SectionTitle>
-              {Object.entries(stats.byChannel).map(([ch, data]) => {
-                const color = COLORS[ch] || "#888";
-                const pct = stats.totalRevenue > 0 ? (data.actual / stats.totalRevenue) * 100 : 0;
-                return (
-                  <div key={ch} style={{ marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
-                      <span style={{ color, fontWeight: 600 }}>{ch.toUpperCase()}</span>
-                      <span style={{ fontFamily: "monospace" }}>฿{fmt(data.actual)} <span style={{ color: "#444", fontSize: 11 }}>({data.count} บิล)</span></span>
-                    </div>
-                    <div style={{ height: 6, background: "#0a0a0a", borderRadius: 3, overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 3, transition: "width 0.8s ease" }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </Card>
-
-            {/* mini trend */}
-            <Card>
-              <SectionTitle>ยอดขาย 30 วันล่าสุด</SectionTitle>
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={stats.dailyData}>
-                  <XAxis dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} tickFormatter={v => `฿${(v/1000).toFixed(0)}k`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line type="monotone" dataKey="revenue" name="ยอดรับจริง" stroke="#f5a623" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card>
-          </div>
-        )}
-
-        {/* ── TAB: DAILY ── */}
-        {tab === "daily" && stats && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["daily", "weekly"].map(p => (
-                <button key={p} onClick={() => setPeriod(p)} style={{
-                  background: period === p ? "#f5a623" : "#1a1a1a", color: period === p ? "#000" : "#666",
-                  border: "1px solid #333", padding: "6px 16px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontFamily: "inherit", fontWeight: 600
-                }}>
-                  {p === "daily" ? "รายวัน" : "รายสัปดาห์"}
-                </button>
-              ))}
-            </div>
-
-            <Card>
-              <SectionTitle>{period === "daily" ? "ยอดขายรายวัน (30 วัน)" : "ยอดขายรายสัปดาห์"}</SectionTitle>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={period === "daily" ? stats.dailyData : stats.weeklyData} barSize={period === "daily" ? 8 : 20}>
-                  <XAxis dataKey={period === "daily" ? "date" : "label"} tickFormatter={period === "daily" ? fmtDate : undefined} tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} tickFormatter={v => `฿${(v/1000).toFixed(0)}k`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="revenue" name="ยอดรับจริง" fill="#f5a623" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-
-            {/* ตารางรายวัน */}
-            <Card>
-              <SectionTitle>ตารางสรุป</SectionTitle>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid #222" }}>
-                      <th style={{ textAlign: "left", padding: "8px 0", color: "#555", fontWeight: 500 }}>วันที่</th>
-                      <th style={{ textAlign: "right", padding: "8px 0", color: "#555", fontWeight: 500 }}>ออเดอร์</th>
-                      <th style={{ textAlign: "right", padding: "8px 0", color: "#555", fontWeight: 500 }}>ยอดรับ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...(period === "daily" ? stats.dailyData : stats.weeklyData)].reverse().map((row, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #1a1a1a" }}>
-                        <td style={{ padding: "10px 0", color: "#aaa" }}>{period === "daily" ? fmtDate(row.date) : row.label}</td>
-                        <td style={{ padding: "10px 0", textAlign: "right", color: "#666" }}>{row.orders}</td>
-                        <td style={{ padding: "10px 0", textAlign: "right", fontFamily: "monospace", color: "#f5a623", fontWeight: 600 }}>฿{fmt(row.revenue)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* ── TAB: MENU ── */}
-        {tab === "menu" && stats && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Card>
-              <SectionTitle>เมนูขายดี Top 10</SectionTitle>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={stats.topMenus} layout="vertical" barSize={14}>
-                  <XAxis type="number" tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: "#aaa" }} axisLine={false} tickLine={false} />
-                  <Tooltip content={({ active, payload }) => active && payload?.length ? (
-                    <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, padding: "8px 12px", fontSize: 13 }}>
-                      <span style={{ color: "#f5a623", fontWeight: 600 }}>{payload[0]?.value} ชิ้น</span>
-                    </div>
-                  ) : null} />
-                  <Bar dataKey="qty" name="จำนวน" fill="#f5a623" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-
-            <Card>
-              <SectionTitle>ตารางเมนูขายดี</SectionTitle>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #222" }}>
-                    <th style={{ textAlign: "left", padding: "8px 0", color: "#555", fontWeight: 500 }}>#</th>
-                    <th style={{ textAlign: "left", padding: "8px 0", color: "#555", fontWeight: 500 }}>เมนู</th>
-                    <th style={{ textAlign: "right", padding: "8px 0", color: "#555", fontWeight: 500 }}>ขายได้</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.topMenus.map((m, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid #1a1a1a" }}>
-                      <td style={{ padding: "10px 0", color: i < 3 ? "#f5a623" : "#444", fontWeight: i < 3 ? 700 : 400, fontFamily: "monospace" }}>{i + 1}</td>
-                      <td style={{ padding: "10px 0", color: "#ddd" }}>{m.name}</td>
-                      <td style={{ padding: "10px 0", textAlign: "right", fontFamily: "monospace", color: "#4caf50", fontWeight: 600 }}>{m.qty} ชิ้น</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-          </div>
-        )}
-
-        {/* ── TAB: CHANNEL ── */}
-        {tab === "channel" && stats && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {Object.entries(stats.byChannel).map(([ch, data]) => (
-                <Card key={ch} style={{ borderTop: `3px solid ${COLORS[ch] || "#888"}` }}>
-                  <div style={{ fontSize: 11, color: COLORS[ch] || "#888", fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>{ch.toUpperCase()}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "monospace" }}>฿{fmt(data.actual)}</div>
-                  <div style={{ fontSize: 11, color: "#555", marginTop: 4 }}>{data.count} บิล</div>
-                  <div style={{ fontSize: 11, color: "#444", marginTop: 2 }}>
-                    บิล ฿{fmt(Math.round(data.actual / (data.count || 1))}/บิล
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            <Card>
-              <SectionTitle>สัดส่วนยอดรับจริง</SectionTitle>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={Object.entries(stats.byChannel).map(([ch, d]) => ({ name: ch.toUpperCase(), value: d.actual, color: COLORS[ch] || "#888" }))}
-                    dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={45} paddingAngle={3}>
-                    {Object.entries(stats.byChannel).map(([ch], i) => (
-                      <Cell key={i} fill={COLORS[ch] || "#888"} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(val) => `฿${fmt(val)}`} contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }} />
-                  <Legend formatter={(val) => <span style={{ color: "#888", fontSize: 12 }}>{val}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
-            </Card>
-
-            <Card>
-              <SectionTitle>ยอดบิล vs ยอดรับจริง</SectionTitle>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={Object.entries(stats.byChannel).map(([ch, d]) => ({ name: ch.toUpperCase(), บิล: d.total, รับจริง: d.actual, color: COLORS[ch] }))}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#555" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} tickFormatter={v => `฿${(v/1000).toFixed(0)}k`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="บิล" fill="#333" radius={[3, 3, 0, 0]} barSize={16} />
-                  <Bar dataKey="รับจริง" fill="#f5a623" radius={[3, 3, 0, 0]} barSize={16} />
-                  <Legend formatter={(val) => <span style={{ color: "#666", fontSize: 11 }}>{val}</span>} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-          </div>
-        )}
-
-        {/* ── TAB: HOUR ── */}
-        {tab === "hour" && stats && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Card>
-              <SectionTitle>ออเดอร์แยกตามช่วงเวลา</SectionTitle>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={stats.peakHours} barSize={12}>
-                  <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
-                  <Tooltip content={({ active, payload, label }) => active && payload?.length ? (
-                    <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, padding: "8px 12px", fontSize: 13 }}>
-                      <div style={{ color: "#666", marginBottom: 4 }}>{label}:00 น.</div>
-                      <div style={{ color: "#f5a623" }}>{payload[0]?.value} ออเดอร์</div>
-                      <div style={{ color: "#4caf50" }}>฿{fmt(payload[1]?.value)}</div>
-                    </div>
-                  ) : null} />
-                  <Bar dataKey="orders" name="ออเดอร์" fill="#f5a623" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-
-            <Card>
-              <SectionTitle>ยอดรับแยกตามช่วงเวลา</SectionTitle>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={stats.peakHours} barSize={12}>
-                  <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} tickFormatter={v => `฿${(v/1000).toFixed(1)}k`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="revenue" name="ยอดรับจริง" fill="#4caf50" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-
-            {/* Peak hour summary */}
-            <Card>
-              <SectionTitle>ช่วงเวลาขายดีสุด</SectionTitle>
-              {[...stats.peakHours].sort((a, b) => b.orders - a.orders).slice(0, 5).map((h, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #1a1a1a" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 11, color: i === 0 ? "#f5a623" : "#444", fontFamily: "monospace", fontWeight: 700 }}>#{i + 1}</span>
-                    <span style={{ color: "#aaa", fontSize: 14 }}>{h.hour}:00 – {h.hour + 1}:00 น.</span>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontFamily: "monospace", color: "#f5a623", fontWeight: 600, fontSize: 13 }}>{h.orders} ออเดอร์</div>
-                    <div style={{ fontSize: 11, color: "#555" }}>฿{fmt(h.revenue)}</div>
-                  </div>
-                </div>
-              ))}
-            </Card>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const btnStyle = (bg, color, border) => ({
-  background: bg, color, border: border || "none",
-  padding: "14px 20px", borderRadius: 10, cursor: "pointer",
-  fontSize: 14, fontFamily: "'IBM Plex Sans Thai', sans-serif",
-  fontWeight: 600, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8
-});
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-</script>
-</body>
-</html>
+  // trend 
