@@ -103,10 +103,10 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
   <div class="empty-sub" id="empty-sub">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
   <div style="display:flex;flex-direction:column;gap:12px;width:100%;align-items:center" id="empty-btns">
     <button class="btn-primary" id="btn-supabase" style="display:none" onclick="loadSupabase()">⚡ ดึงข้อมูลจาก Supabase</button>
-    <label class="btn-secondary">
-      📂 Upload CSV Backup
-      <input type="file" accept=".csv" onchange="loadCSV(event)">
-    </label>
+    <label class="btn-secondary" for="csv-input">
+  📂 Upload CSV Backup
+</label>
+<input id="csv-input" type="file" accept=".csv" style="display:block;opacity:0;position:absolute" onchange="loadCSV(event)">
   </div>
 </div>
 
