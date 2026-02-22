@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KATKAT Analytics</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #1a1a1a;
+    --border: #222;
+    --text: #f0f0f0;
+    --muted: #555;
+    --muted2: #888;
+    --orange: #f5a623;
+    --orange2: #e8941a;
+    --green: #4caf50;
+    --blue: #2196f3;
+    --red: #ef5350;
+    --purple: #ab47bc;
+  }
+  html, body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans Thai', sans-serif; min-height: 100vh; }
+  #root { min-height: 100vh; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  input[type=file] { display: none; }
+  * { -webkit-tap-highlight-color: transparent; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback } = React;
+const {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} = Recharts;
+
+// ── CONFIG ──────────────────────────────────────────────
+// ใส่ค่าตรงนี้ หรือใช้ CSV upload
+const SUPABASE_URL = "";   // วางค่าจาก POS .env
+const SUPABASE_KEY = "";   // วางค่าจาก POS .env
+
+const COLORS = {
+  pos: "#ffffff", grab: "#00B14F", lineman: "#00A84F", shopee: "#EE4D2D",
+  orange: "#f5a623", green: "#4caf50", blue: "#2196f3", purple: "#ab47bc",
+};
+
+// ── HELPERS ─────────────────────────────────────────────
+const fmt = (n) => (n || 0).toLocaleString("th-TH");
+const fmtDate = (d) => new Date(d).toLocaleDateString("th-TH", { day: "2-digit", month: "short" });
+
+function parseCSV(text) {
+  const lines = text.trim().split("\n");
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
+  return lines.slice(1).map(line => {
+    const vals = line.match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+    const obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = (vals[i] || "").replace(/"/g, "").trim();
+    });
+    return obj;
+  }).filter(r => r["ช่องทาง"]);
+}
+
+function normalizeRow(row) {
+  // รองรับทั้ง CSV format และ Supabase format
+  return {
+    id: row.id || Math.random(),
+    time: row.created_at || row["วันที่/เวลา"] || "",
+    channel: (row.channel || row["ช่องทาง"] || "pos").toLowerCase(),
+    payment: row.payment || row["ประเภทชำระเงิน"] || "",
+    total: Number(row.total || row["ยอดรวมเมนู"] || 0),
+    actualAmount: Number(row.actual_amount || row["ยอดรับจริง"] || 0),
+    items: row.items || row["รายการสินค้า"] || "",
+  };
+}
+
+// ── ANALYTICS ENGINE ────────────────────────────────────
+function computeStats(orders) {
+  if (!orders.length) return null;
+
+  // ยอดรวม
+  const totalRevenue = orders.reduce((s, o) => s + o.actualAmount, 0);
+  const totalBilled = orders.reduce((s, o) => s + o.total, 0);
+  const avgBill = orders.length ? totalRevenue / orders.length : 0;
+
+  // แยกช่องทาง
+  const byChannel = {};
+  orders.forEach(o => {
+    if (!byChannel[o.channel]) byChannel[o.channel] = { count: 0, total: 0, actual: 0 };
+    byChannel[o.channel].count++;
+    byChannel[o.channel].total += o.total;
+    byChannel[o.channel].actual += o.actualAmount;
+  });
+
+  // รายวัน (30 วันล่าสุด)
+  const byDay = {};
+  orders.forEach(o => {
+    if (!o.time) return;
+    const day = new Date(o.time).toISOString().split("T")[0];
+    if (!byDay[day]) byDay[day] = { date: day, revenue: 0, orders: 0 };
+    byDay[day].revenue += o.actualAmount;
+    byDay[day].orders++;
+  });
+  const dailyData = Object.values(byDay).sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
+
+  // เวลาที่ขายดี (hour)
+  const byHour = Array(24).fill(0).map((_, i) => ({ hour: i, orders: 0, revenue: 0 }));
+  orders.forEach(o => {
+    if (!o.time) return;
+    const h = new Date(o.time).getHours();
+    byHour[h].orders++;
+    byHour[h].revenue += o.actualAmount;
+  });
+  const peakHours = byHour.filter(h => h.orders > 0);
+
+  // เมนูขายดี Top 10
+  const menuCount = {};
+  orders.forEach(o => {
+    const raw = typeof o.items === "string" ? o.items : JSON.stringify(o.items || "");
+    const matches = raw.match(/([^|,\[\]{}]+?)x(\d+)/g) || [];
+    matches.forEach(m => {
+      const parts = m.match(/(.+?)x(\d+)/);
+      if (parts) {
+        const name = parts[1].replace(/["']/g, "").trim();
+        const qty = Number(parts[2]);
+        if (name && name.length > 1) {
+          menuCount[name] = (menuCount[name] || 0) + qty;
+        }
+      }
+    });
+  });
+  const topMenus = Object.entries(menuCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, qty]) => ({ name, qty }));
+
+  // รายสัปดาห์
+  const byWeek = {};
+  orders.forEach(o => {
+    if (!o.time) return;
+    const d = new Date(o.time);
+    const week = `${d.getFullYear()}-W${String(Math.ceil((d.getDate()) / 7)).padStart(2, "0")}`;
+    const mo = d.toLocaleDateString("th-TH", { month: "short", year: "2-digit" });
+    const label = `${mo} W${Math.ceil(d.getDate() / 7)}`;
+    if (!byWeek[week]) byWeek[week] = { week, label, revenue: 0, orders: 0 };
+    byWeek[week].revenue += o.actualAmount;
+    byWeek[week].orders++;
+  });
+  const weeklyData = Object.values(byWeek).sort((a, b) => a.week.localeCompare(b.week)).slice(-8);
+
+  return { totalRevenue, totalBilled, avgBill, byChannel, dailyData, weeklyData, peakHours, topMenus, orderCount: orders.length };
+}
+
+// ── COMPONENTS ──────────────────────────────────────────
+const Card = ({ children, style = {} }) => (
+  <div style={{ background: "#111", border: "1px solid #222", borderRadius: 12, padding: 16, ...style }}>
+    {children}
+  </div>
+);
+
+const StatCard = ({ label, value, sub, color = "#fff", accent }) => (
+  <Card style={{ borderTop: `3px solid ${accent || color}` }}>
+    <div style={{ fontSize: 11, color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
+    <div style={{ fontSize: 24, fontWeight: 700, color, fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.2 }}>{value}</div>
+    {sub && <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{sub}</div>}
+  </Card>
+);
+
+const SectionTitle = ({ children }) => (
+  <div style={{ fontSize: 13, fontWeight: 600, color: "#666", textTransform: "uppercase", letterSpacing: 2, marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #1a1a1a" }}>
+    {children}
+  </div>
+);
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
+      <div style={{ color: "#888", marginBottom: 6 }}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ color: p.color || "#fff" }}>
+          {p.name}: <span style={{ fontFamily: "monospace", fontWeight: 600 }}>฿{fmt(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── MAIN APP ────────────────────────────────────────────
+export default function App() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [source, setSource] = useState("none"); // none | supabase | csv
+  const [tab, setTab] = useState("overview"); // overview | daily | menu | channel | hour
+  const [period, setPeriod] = useState("daily"); // daily | weekly
+
+  const hasSupabase = SUPABASE_URL && SUPABASE_KEY;
+
+  // โหลดจาก Supabase
+  const loadFromSupabase = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      setOrders(data.map(normalizeRow));
+      setSource("supabase");
+    } catch (e) {
+      setError("เชื่อม Supabase ไม่ได้: " + e.message);
+    } finally { setLoading(false); }
+  }, []);
+
+  // โหลดจาก CSV
+  const loadFromCSV = useCallback((e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const rows = parseCSV(ev.target.result);
+        setOrders(rows.map(normalizeRow));
+        setSource("csv");
+      } catch (e) { setError("อ่านไฟล์ไม่ได้: " + e.message); }
+      finally { setLoading(false); }
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  }, []);
+
+  useEffect(() => {
+    if (hasSupabase) loadFromSupabase();
+  }, []);
+
+  const stats = useMemo(() => computeStats(orders), [orders]);
+
+  // ── RENDER: NO DATA ──
+  if (!orders.length && !loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: 24 }}>
+      <div style={{ fontSize: 40 }}>📊</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: "#f5a623" }}>KATKAT Analytics</div>
+      <div style={{ fontSize: 13, color: "#555", textAlign: "center", maxWidth: 300 }}>
+        {error ? <span style={{ color: "#ef5350" }}>{error}</span> : "เลือกแหล่งข้อมูลเพื่อเริ่มต้น"}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 320 }}>
+        {hasSupabase && (
+          <button onClick={loadFromSupabase} style={btnStyle("#f5a623", "#000")}>
+            ⚡ ดึงข้อมูลจาก Supabase
+          </button>
+        )}
+        <label style={btnStyle("#222", "#fff", "1px solid #333")}>
+          📂 Upload CSV Backup
+          <input type="file" accept=".csv" onChange={loadFromCSV} />
+        </label>
+        {!hasSupabase && (
+          <div style={{ fontSize: 11, color: "#444", textAlign: "center", lineHeight: 1.6 }}>
+            หรือใส่ SUPABASE_URL และ SUPABASE_KEY<br/>ในไฟล์ HTML บรรทัด 40-41
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontSize: 28 }}>⏳</div>
+      <div style={{ color: "#555", fontSize: 14 }}>กำลังโหลดข้อมูล...</div>
+    </div>
+  );
+
+  const tabs = [
+    { id: "overview", label: "ภาพรวม" },
+    { id: "daily", label: "รายวัน" },
+    { id: "menu", label: "เมนู" },
+    { id: "channel", label: "ช่องทาง" },
+    { id: "hour", label: "ช่วงเวลา" },
+  ];
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 0 80px" }}>
+      {/* HEADER */}
+      <div style={{ padding: "20px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 11, color: "#f5a623", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 }}>KAT KAT KATSU</div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>Analytics</div>
+          <div style={{ fontSize: 11, color: "#444", marginTop: 2 }}>
+            {source === "supabase" ? "⚡ Supabase" : "📂 CSV"} · {orders.length} orders
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {hasSupabase && (
+            <button onClick={loadFromSupabase} style={{ background: "#1a1a1a", border: "1px solid #333", color: "#888", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>
+              🔄
+            </button>
+          )}
+          <label style={{ background: "#1a1a1a", border: "1px solid #333", color: "#888", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>
+            📂
+            <input type="file" accept=".csv" onChange={loadFromCSV} />
+          </label>
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div style={{ display: "flex", gap: 0, padding: "16px 16px 0", overflowX: "auto" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            background: "none", border: "none", borderBottom: tab === t.id ? "2px solid #f5a623" : "2px solid transparent",
+            color: tab === t.id ? "#f5a623" : "#555", padding: "8px 14px", cursor: "pointer",
+            fontSize: 13, fontFamily: "inherit", fontWeight: tab === t.id ? 600 : 400, whiteSpace: "nowrap"
+          }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ height: 1, background: "#1a1a1a", margin: "0 16px" }} />
+
+      <div style={{ padding: "16px" }}>
+
+        {/* ── TAB: OVERVIEW ── */}
+        {tab === "overview" && stats && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* stat cards 2x2 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <StatCard label="ยอดรับจริงรวม" value={`฿${fmt(stats.totalRevenue)}`} accent="#f5a623" />
+              <StatCard label="จำนวนบิล" value={stats.orderCount} sub="ออเดอร์ทั้งหมด" accent="#f5a623" />
+              <StatCard label="เฉลี่ยต่อบิล" value={`฿${fmt(Math.round(stats.avgBill))}`} accent="#4caf50" color="#4caf50" />
+              <StatCard label="ยอดบิล vs รับจริง" value={`${stats.totalBilled > 0 ? Math.round((stats.totalRevenue / stats.totalBilled) * 100) : 0}%`} sub={`บิล ฿${fmt(stats.totalBilled)}`} accent="#2196f3" color="#2196f3" />
+            </div>
+
+            {/* channel summary */}
+            <Card>
+              <SectionTitle>รายได้แยกช่องทาง</SectionTitle>
+              {Object.entries(stats.byChannel).map(([ch, data]) => {
+                const color = COLORS[ch] || "#888";
+                const pct = stats.totalRevenue > 0 ? (data.actual / stats.totalRevenue) * 100 : 0;
+                return (
+                  <div key={ch} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
+                      <span style={{ color, fontWeight: 600 }}>{ch.toUpperCase()}</span>
+                      <span style={{ fontFamily: "monospace" }}>฿{fmt(data.actual)} <span style={{ color: "#444", fontSize: 11 }}>({data.count} บิล)</span></span>
+                    </div>
+                    <div style={{ height: 6, background: "#0a0a0a", borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 3, transition: "width 0.8s ease" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </Card>
+
+            {/* mini trend */}
+            <Card>
+              <SectionTitle>ยอดขาย 30 วันล่าสุด</SectionTitle>
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={stats.dailyData}>
+                  <XAxis dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} tickFormatter={v => `฿${(v/1000).toFixed(0)}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="revenue" name="ยอดรับจริง" stroke="#f5a623" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+        )}
+
+        {/* ── TAB: DAILY ── */}
+        {tab === "daily" && stats && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["daily", "weekly"].map(p => (
+                <button key={p} onClick={() => setPeriod(p)} style={{
+                  background: period === p ? "#f5a623" : "#1a1a1a", color: period === p ? "#000" : "#666",
+                  border: "1px solid #333", padding: "6px 16px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontFamily: "inherit", fontWeight: 600
+                }}>
+                  {p === "daily" ? "รายวัน" : "รายสัปดาห์"}
+                </button>
+              ))}
+            </div>
+
+            <Card>
+              <SectionTitle>{period === "daily" ? "ยอดขายรายวัน (30 วัน)" : "ยอดขายรายสัปดาห์"}</SectionTitle>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={period === "daily" ? stats.dailyData : stats.weeklyData} barSize={period === "daily" ? 8 : 20}>
+                  <XAxis dataKey={period === "daily" ? "date" : "label"} tickFormatter={period === "daily" ? fmtDate : undefined} tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} tickFormatter={v => `฿${(v/1000).toFixed(0)}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="revenue" name="ยอดรับจริง" fill="#f5a623" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* ตารางรายวัน */}
+            <Card>
+              <SectionTitle>ตารางสรุป</SectionTitle>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #222" }}>
+                      <th style={{ textAlign: "left", padding: "8px 0", color: "#555", fontWeight: 500 }}>วันที่</th>
+                      <th style={{ textAlign: "right", padding: "8px 0", color: "#555", fontWeight: 500 }}>ออเดอร์</th>
+                      <th style={{ textAlign: "right", padding: "8px 0", color: "#555", fontWeight: 500 }}>ยอดรับ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...(period === "daily" ? stats.dailyData : stats.weeklyData)].reverse().map((row, i) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                        <td style={{ padding: "10px 0", color: "#aaa" }}>{period === "daily" ? fmtDate(row.date) : row.label}</td>
+                        <td style={{ padding: "10px 0", textAlign: "right", color: "#666" }}>{row.orders}</td>
+                        <td style={{ padding: "10px 0", textAlign: "right", fontFamily: "monospace", color: "#f5a623", fontWeight: 600 }}>฿{fmt(row.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* ── TAB: MENU ── */}
+        {tab === "menu" && stats && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <Card>
+              <SectionTitle>เมนูขายดี Top 10</SectionTitle>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={stats.topMenus} layout="vertical" barSize={14}>
+                  <XAxis type="number" tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: "#aaa" }} axisLine={false} tickLine={false} />
+                  <Tooltip content={({ active, payload }) => active && payload?.length ? (
+                    <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, padding: "8px 12px", fontSize: 13 }}>
+                      <span style={{ color: "#f5a623", fontWeight: 600 }}>{payload[0]?.value} ชิ้น</span>
+                    </div>
+                  ) : null} />
+                  <Bar dataKey="qty" name="จำนวน" fill="#f5a623" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            <Card>
+              <SectionTitle>ตารางเมนูขายดี</SectionTitle>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #222" }}>
+                    <th style={{ textAlign: "left", padding: "8px 0", color: "#555", fontWeight: 500 }}>#</th>
+                    <th style={{ textAlign: "left", padding: "8px 0", color: "#555", fontWeight: 500 }}>เมนู</th>
+                    <th style={{ textAlign: "right", padding: "8px 0", color: "#555", fontWeight: 500 }}>ขายได้</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.topMenus.map((m, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                      <td style={{ padding: "10px 0", color: i < 3 ? "#f5a623" : "#444", fontWeight: i < 3 ? 700 : 400, fontFamily: "monospace" }}>{i + 1}</td>
+                      <td style={{ padding: "10px 0", color: "#ddd" }}>{m.name}</td>
+                      <td style={{ padding: "10px 0", textAlign: "right", fontFamily: "monospace", color: "#4caf50", fontWeight: 600 }}>{m.qty} ชิ้น</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          </div>
+        )}
+
+        {/* ── TAB: CHANNEL ── */}
+        {tab === "channel" && stats && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {Object.entries(stats.byChannel).map(([ch, data]) => (
+                <Card key={ch} style={{ borderTop: `3px solid ${COLORS[ch] || "#888"}` }}>
+                  <div style={{ fontSize: 11, color: COLORS[ch] || "#888", fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>{ch.toUpperCase()}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "monospace" }}>฿{fmt(data.actual)}</div>
+                  <div style={{ fontSize: 11, color: "#555", marginTop: 4 }}>{data.count} บิล</div>
+                  <div style={{ fontSize: 11, color: "#444", marginTop: 2 }}>
+                    บิล ฿{fmt(Math.round(data.actual / (data.count || 1))}/บิล
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            <Card>
+              <SectionTitle>สัดส่วนยอดรับจริง</SectionTitle>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={Object.entries(stats.byChannel).map(([ch, d]) => ({ name: ch.toUpperCase(), value: d.actual, color: COLORS[ch] || "#888" }))}
+                    dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={45} paddingAngle={3}>
+                    {Object.entries(stats.byChannel).map(([ch], i) => (
+                      <Cell key={i} fill={COLORS[ch] || "#888"} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(val) => `฿${fmt(val)}`} contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }} />
+                  <Legend formatter={(val) => <span style={{ color: "#888", fontSize: 12 }}>{val}</span>} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+
+            <Card>
+              <SectionTitle>ยอดบิล vs ยอดรับจริง</SectionTitle>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={Object.entries(stats.byChannel).map(([ch, d]) => ({ name: ch.toUpperCase(), บิล: d.total, รับจริง: d.actual, color: COLORS[ch] }))}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#555" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} tickFormatter={v => `฿${(v/1000).toFixed(0)}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="บิล" fill="#333" radius={[3, 3, 0, 0]} barSize={16} />
+                  <Bar dataKey="รับจริง" fill="#f5a623" radius={[3, 3, 0, 0]} barSize={16} />
+                  <Legend formatter={(val) => <span style={{ color: "#666", fontSize: 11 }}>{val}</span>} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+        )}
+
+        {/* ── TAB: HOUR ── */}
+        {tab === "hour" && stats && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <Card>
+              <SectionTitle>ออเดอร์แยกตามช่วงเวลา</SectionTitle>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={stats.peakHours} barSize={12}>
+                  <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
+                  <Tooltip content={({ active, payload, label }) => active && payload?.length ? (
+                    <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, padding: "8px 12px", fontSize: 13 }}>
+                      <div style={{ color: "#666", marginBottom: 4 }}>{label}:00 น.</div>
+                      <div style={{ color: "#f5a623" }}>{payload[0]?.value} ออเดอร์</div>
+                      <div style={{ color: "#4caf50" }}>฿{fmt(payload[1]?.value)}</div>
+                    </div>
+                  ) : null} />
+                  <Bar dataKey="orders" name="ออเดอร์" fill="#f5a623" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            <Card>
+              <SectionTitle>ยอดรับแยกตามช่วงเวลา</SectionTitle>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={stats.peakHours} barSize={12}>
+                  <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#555" }} axisLine={false} tickLine={false} tickFormatter={v => `฿${(v/1000).toFixed(1)}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="revenue" name="ยอดรับจริง" fill="#4caf50" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* Peak hour summary */}
+            <Card>
+              <SectionTitle>ช่วงเวลาขายดีสุด</SectionTitle>
+              {[...stats.peakHours].sort((a, b) => b.orders - a.orders).slice(0, 5).map((h, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #1a1a1a" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 11, color: i === 0 ? "#f5a623" : "#444", fontFamily: "monospace", fontWeight: 700 }}>#{i + 1}</span>
+                    <span style={{ color: "#aaa", fontSize: 14 }}>{h.hour}:00 – {h.hour + 1}:00 น.</span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontFamily: "monospace", color: "#f5a623", fontWeight: 600, fontSize: 13 }}>{h.orders} ออเดอร์</div>
+                    <div style={{ fontSize: 11, color: "#555" }}>฿{fmt(h.revenue)}</div>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const btnStyle = (bg, color, border) => ({
+  background: bg, color, border: border || "none",
+  padding: "14px 20px", borderRadius: 10, cursor: "pointer",
+  fontSize: 14, fontFamily: "'IBM Plex Sans Thai', sans-serif",
+  fontWeight: 600, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+});
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
