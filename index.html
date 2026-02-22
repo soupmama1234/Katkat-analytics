@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KATKAT Analytics</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -14,8 +14,12 @@
   --text:#f0f0f0;--muted:#555;--muted2:#888;
   --orange:#f5a623;--green:#4caf50;--blue:#2196f3;--red:#ef5350;
 }
-html,body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;min-height:100vh; overflow-x: hidden;}
+html,body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;min-height:100vh}
 button{font-family:inherit;cursor:pointer}
+input[type=file]{display:none}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 /* Layout */
 #app{max-width:800px;margin:0 auto;padding-bottom:80px}
@@ -24,53 +28,89 @@ button{font-family:inherit;cursor:pointer}
 .header-left h1{font-size:22px;font-weight:700}
 .header-left .sub{font-size:11px;color:#444;margin-top:2px}
 .header-right{display:flex;gap:8px}
-
-/* Button & Upload Fix */
-.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted2);padding:8px 12px;border-radius:8px;font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
-.upload-label { position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.upload-label input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; font-size: 0; }
+.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted2);padding:8px 12px;border-radius:8px;font-size:14px}
 
 /* Tabs */
 .tabs{display:flex;padding:16px 16px 0;overflow-x:auto;gap:0;border-bottom:1px solid var(--bg3);margin-top:4px}
 .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:8px 14px;font-size:13px;font-family:inherit;white-space:nowrap;transition:all 0.2s}
 .tab.active{border-bottom-color:var(--orange);color:var(--orange);font-weight:600}
 
-/* Cards & Stats */
+/* Cards */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
 .section-pad{padding:16px}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
 .stat-label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
 .stat-value{font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1.2}
+.stat-sub{font-size:12px;color:#555;margin-top:4px}
 .section-title{font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
+
+/* Channel bars */
+.ch-row{margin-bottom:14px}
+.ch-meta{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.ch-name{font-weight:600}
+.bar-bg{height:6px;background:#0a0a0a;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width 0.8s ease}
 
 /* Table */
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:8px 0;color:#555;font-weight:500;border-bottom:1px solid var(--border)}
 th.r,td.r{text-align:right}
 td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
+td.mono{font-family:'IBM Plex Mono',monospace;color:var(--orange);font-weight:600}
+td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:600}
 
-/* Empty State */
+/* Period toggle */
+.toggle{display:flex;gap:8px;margin-bottom:16px}
+.toggle-btn{background:var(--bg3);border:1px solid var(--border);color:#666;padding:6px 16px;border-radius:20px;font-size:12px;font-family:inherit;font-weight:600}
+.toggle-btn.active{background:var(--orange);color:#000;border-color:var(--orange)}
+
+/* Empty / loading */
 #empty{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center}
+.empty-icon{font-size:48px}
+.empty-title{font-size:20px;font-weight:700;color:var(--orange)}
+.empty-sub{font-size:13px;color:#555;max-width:300px;line-height:1.6}
 .btn-primary{background:var(--orange);color:#000;border:none;padding:14px 20px;border-radius:10px;font-size:14px;font-weight:700;width:100%;max-width:320px}
-.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:14px 20px;border-radius:10px;font-size:14px;font-weight:600;width:100%;max-width:320px;display:flex;align-items:center;justify-content:center;gap:8px; cursor:pointer;}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:14px 20px;border-radius:10px;font-size:14px;font-weight:600;width:100%;max-width:320px;display:flex;align-items:center;justify-content:center;gap:8px}
+.error{color:var(--red);font-size:13px}
+
+/* Top menu rank */
+.menu-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--bg3);gap:10px}
+.rank{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;width:24px;flex-shrink:0}
+.rank.gold{color:var(--orange)}
+.rank.silver{color:#888}
+.rank.bronze{color:#cd7f32}
+.menu-name{flex:1;font-size:14px;color:#ddd}
+.menu-qty{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:600;font-size:13px}
+
+/* Chart container */
+.chart-wrap{position:relative;margin-top:8px}
+
+/* Peak hour row */
+.hour-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bg3)}
+.hour-label{color:#aaa;font-size:14px}
+.hour-stats{text-align:right}
+.hour-orders{font-family:'IBM Plex Mono',monospace;color:var(--orange);font-weight:600;font-size:13px}
+.hour-rev{font-size:11px;color:#555}
 </style>
 </head>
 <body>
 
+<!-- EMPTY STATE -->
 <div id="empty">
-  <div style="font-size:48px">📊</div>
-  <div style="font-size:20px; font-weight:700; color:var(--orange)">KATKAT Analytics</div>
-  <div id="empty-sub" style="font-size:13px; color:#555; max-width:300px; line-height:1.6">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
+  <div class="empty-icon">📊</div>
+  <div class="empty-title">KATKAT Analytics</div>
+  <div class="empty-sub" id="empty-sub">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
   <div style="display:flex;flex-direction:column;gap:12px;width:100%;align-items:center" id="empty-btns">
     <button class="btn-primary" id="btn-supabase" style="display:none" onclick="loadSupabase()">⚡ ดึงข้อมูลจาก Supabase</button>
-    <label class="btn-secondary upload-label">
-      📂 Upload CSV Backup
-      <input type="file" accept=".csv" onchange="loadCSV(event)">
-    </label>
+    <div style="position:relative;width:100%;max-width:320px">
+      <div class="btn-secondary" style="pointer-events:none">📂 Upload CSV Backup</div>
+      <input type="file" accept=".csv" onchange="loadCSV(event)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0">
+    </div>
   </div>
 </div>
 
+<!-- MAIN APP (hidden until data loaded) -->
 <div id="app" style="display:none">
   <div class="header">
     <div class="header-left">
@@ -80,59 +120,137 @@ td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
     </div>
     <div class="header-right">
       <button class="icon-btn" id="btn-refresh" onclick="loadSupabase()" style="display:none">🔄</button>
-      <label class="icon-btn upload-label">
-        📂
-        <input type="file" accept=".csv" onchange="loadCSV(event)">
-      </label>
+      <div style="position:relative">
+        <div class="icon-btn" style="pointer-events:none">📂</div>
+        <input type="file" accept=".csv" onchange="loadCSV(event)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0">
+      </div>
     </div>
   </div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('overview')">ภาพรวม</button>
     <button class="tab" onclick="switchTab('daily')">รายวัน</button>
+    <button class="tab" onclick="switchTab('menu')">เมนู</button>
+    <button class="tab" onclick="switchTab('channel')">ช่องทาง</button>
+    <button class="tab" onclick="switchTab('hour')">ช่วงเวลา</button>
   </div>
 
+  <!-- TAB: OVERVIEW -->
   <div id="tab-overview" class="tab-content">
     <div class="grid-2" style="margin-top:16px">
       <div class="stat-card" style="border-top:3px solid var(--orange)">
         <div class="stat-label">ยอดรับจริงรวม</div>
-        <div class="stat-value" id="s-revenue">฿0</div>
+        <div class="stat-value" id="s-revenue"></div>
       </div>
       <div class="stat-card" style="border-top:3px solid var(--orange)">
         <div class="stat-label">จำนวนบิล</div>
-        <div class="stat-value" id="s-count">0</div>
+        <div class="stat-value" id="s-count"></div>
+        <div class="stat-sub">ออเดอร์ทั้งหมด</div>
+      </div>
+      <div class="stat-card" style="border-top:3px solid var(--green)">
+        <div class="stat-label">เฉลี่ยต่อบิล</div>
+        <div class="stat-value" style="color:var(--green)" id="s-avg"></div>
+      </div>
+      <div class="stat-card" style="border-top:3px solid var(--blue)">
+        <div class="stat-label">บิล vs รับจริง</div>
+        <div class="stat-value" style="color:var(--blue)" id="s-pct"></div>
+        <div class="stat-sub" id="s-billed"></div>
       </div>
     </div>
     <div class="section-pad">
-        <div class="card">
-            <div class="section-title">ยอดขาย 7 วันล่าสุด</div>
-            <div style="height:200px"><canvas id="chart-trend"></canvas></div>
-        </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">รายได้แยกช่องทาง</div>
+        <div id="channel-bars"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ยอดขาย 30 วันล่าสุด</div>
+        <div class="chart-wrap"><canvas id="chart-trend" height="140"></canvas></div>
+      </div>
     </div>
   </div>
-  
+
+  <!-- TAB: DAILY -->
   <div id="tab-daily" class="tab-content" style="display:none">
     <div class="section-pad">
+      <div class="toggle">
+        <button class="toggle-btn active" id="tog-daily" onclick="setPeriod('daily')">รายวัน</button>
+        <button class="toggle-btn" id="tog-weekly" onclick="setPeriod('weekly')">รายสัปดาห์</button>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title" id="daily-chart-title">ยอดขายรายวัน (30 วัน)</div>
+        <div class="chart-wrap"><canvas id="chart-daily" height="180"></canvas></div>
+      </div>
       <div class="card">
-        <div class="section-title">ตารางสรุปรายวัน</div>
+        <div class="section-title">ตารางสรุป</div>
         <table>
-          <thead><tr><th>วันที่</th><th class="r">ยอดรับ</th></tr></thead>
+          <thead><tr><th>วันที่</th><th class="r">ออเดอร์</th><th class="r">ยอดรับ</th></tr></thead>
           <tbody id="daily-table"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MENU -->
+  <div id="tab-menu" class="tab-content" style="display:none">
+    <div class="section-pad">
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">เมนูขายดี Top 10</div>
+        <div class="chart-wrap"><canvas id="chart-menu" height="260"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ตารางเมนูขายดี</div>
+        <div id="menu-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CHANNEL -->
+  <div id="tab-channel" class="tab-content" style="display:none">
+    <div class="section-pad">
+      <div class="grid-2" id="channel-cards" style="margin:0 0 16px"></div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">สัดส่วนยอดรับจริง</div>
+        <div class="chart-wrap" style="max-width:300px;margin:0 auto"><canvas id="chart-pie" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ยอดบิล vs ยอดรับจริง</div>
+        <div class="chart-wrap"><canvas id="chart-compare" height="180"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: HOUR -->
+  <div id="tab-hour" class="tab-content" style="display:none">
+    <div class="section-pad">
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">ออเดอร์แยกตามช่วงเวลา</div>
+        <div class="chart-wrap"><canvas id="chart-hour" height="180"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ช่วงเวลาขายดีสุด Top 5</div>
+        <div id="peak-list"></div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// ── CONFIG (เติม URL และ KEY ของคุณตรงนี้) ────────────────
-const SUPABASE_URL = "https://uhruejkycwcxjhcokbfm.supabase.co"; 
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
+// ── CONFIG ───────────────────────────────────────────
+const SUPABASE_URL = "https://uhruejkycwcxjhcokbfm.supabase.co";  // ใส่ค่าจาก POS
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";  // ใส่ค่าจาก POS
 
+// ── STATE ────────────────────────────────────────────
 let allOrders = [];
+let currentPeriod = "daily";
 let charts = {};
-const fmt = n => (n||0).toLocaleString("th-TH");
 
+const CH_COLORS = {
+  pos: "#ffffff", grab: "#00B14F", lineman: "#00A84F", shopee: "#EE4D2D"
+};
+const fmt = n => (n||0).toLocaleString("th-TH");
+const fmtDate = s => new Date(s).toLocaleDateString("th-TH",{day:"2-digit",month:"short"});
+
+// ── INIT ─────────────────────────────────────────────
 window.onload = () => {
   if (SUPABASE_URL && SUPABASE_KEY) {
     document.getElementById("btn-supabase").style.display = "block";
@@ -141,80 +259,92 @@ window.onload = () => {
   }
 };
 
-// ── CORE FUNCTIONS ───────────────────────────────────
+// ── LOAD SUPABASE ────────────────────────────────────
 async function loadSupabase() {
-  setLoading("กำลังเชื่อมต่อ Supabase...");
+  setLoading("กำลังดึงข้อมูลจาก Supabase...");
   try {
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
     if (error) throw error;
     allOrders = data.map(normalizeRow);
     showApp("supabase");
-  } catch(e) { setError("เชื่อมต่อไม่ได้: " + e.message); }
+  } catch(e) {
+    setError("เชื่อม Supabase ไม่ได้: " + e.message);
+  }
 }
 
+// ── LOAD CSV ─────────────────────────────────────────
 function loadCSV(e) {
   const file = e.target.files[0];
   if (!file) return;
   setLoading("กำลังอ่านไฟล์ CSV...");
-  
   const reader = new FileReader();
   reader.onload = ev => {
     try {
       const rows = parseCSV(ev.target.result);
-      if (rows.length === 0) throw new Error("ไฟล์ว่างเปล่าหรือรูปแบบไม่ถูกต้อง");
       allOrders = rows.map(normalizeRow);
       showApp("csv");
-    } catch(err) { 
-      console.error(err);
-      setError("อ่านไฟล์ไม่ได้: " + err.message); 
-    }
+    } catch(err) { setError("อ่านไฟล์ไม่ได้: " + err.message); }
   };
-  // ลองอ่านแบบ UTF-8 ก่อน ถ้าภาษาไทยเพี้ยนค่อยแก้เป็น windows-874
   reader.readAsText(file, "UTF-8");
+  e.target.value = "";
 }
 
 function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
+  const lines = text.trim().split("\n");
   if (lines.length < 2) return [];
-
-  // แยก Header (รองรับ , และ ;)
-  const delimiter = lines[0].indexOf(';') > -1 ? ';' : ',';
-  const headers = lines[0].split(delimiter).map(h => h.trim().replace(/"/g,""));
-  
+  const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim());
   return lines.slice(1).map(line => {
-    const vals = line.split(delimiter).map(v => v.trim().replace(/"/g,""));
+    const vals = [];
+    let cur = "", inQ = false;
+    for (let c of line) {
+      if (c === '"') inQ = !inQ;
+      else if (c === ',' && !inQ) { vals.push(cur); cur = ""; }
+      else cur += c;
+    }
+    vals.push(cur);
     const obj = {};
-    headers.forEach((h, i) => { if(h) obj[h] = vals[i] || ""; });
+    headers.forEach((h,i) => obj[h] = (vals[i]||"").trim());
     return obj;
-  });
+  }).filter(r => r["ช่องทาง"] || r["channel"]);
 }
 
 function normalizeRow(row) {
   return {
-    time: row.created_at || row["วันที่/เวลา"] || row["Date"] || "",
-    actual: Number(row.actual_amount || row["ยอดรับจริง"] || row["Actual"] || 0),
+    id: row.id || Math.random(),
+    time: row.created_at || row["วันที่/เวลา"] || "",
+    channel: (row.channel || row["ช่องทาง"] || "pos").toLowerCase(),
+    payment: row.payment || row["ประเภทชำระเงิน"] || "",
+    total: Number(row.total || row["ยอดรวมเมนู"] || 0),
+    actual: Number(row.actual_amount || row["ยอดรับจริง"] || 0),
+    items: typeof row.items === "string" ? row.items : (row["รายการสินค้า"] || ""),
   };
 }
 
-// ── UI HELPERS ───────────────────────────────────────
+// ── SHOW APP ─────────────────────────────────────────
 function showApp(source) {
   document.getElementById("empty").style.display = "none";
   document.getElementById("app").style.display = "block";
-  document.getElementById("data-source-label").textContent = source.toUpperCase() + " Mode";
+  document.getElementById("data-source-label").textContent =
+    (source === "supabase" ? "⚡ Supabase" : "📂 CSV") + " · " + allOrders.length + " orders";
   renderAll();
 }
 
 function setLoading(msg) {
+  document.getElementById("empty").style.display = "flex";
+  document.getElementById("app").style.display = "none";
   document.getElementById("empty-sub").textContent = msg;
   document.getElementById("empty-btns").style.display = "none";
 }
 
 function setError(msg) {
-  document.getElementById("empty-sub").innerHTML = `<span style="color:red">${msg}</span>`;
+  document.getElementById("empty").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("empty-sub").innerHTML = `<span class="error">${msg}</span>`;
   document.getElementById("empty-btns").style.display = "flex";
 }
 
+// ── TABS ─────────────────────────────────────────────
 function switchTab(id) {
   document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
   document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
@@ -222,52 +352,133 @@ function switchTab(id) {
   event.target.classList.add("active");
 }
 
-function renderAll() {
-    const totalRevenue = allOrders.reduce((s,o) => s + o.actual, 0);
-    document.getElementById("s-revenue").textContent = "฿" + fmt(totalRevenue);
-    document.getElementById("s-count").textContent = allOrders.length;
-    
-    const byDay = {};
-    allOrders.forEach(o => {
-        if(!o.time) return;
-        const d = o.time.split("T")[0] || o.time.split(" ")[0];
-        byDay[d] = (byDay[d]||0) + o.actual;
-    });
-
-    const sortedDays = Object.keys(byDay).sort();
-    const chartDays = sortedDays.slice(-7);
-    const chartVals = chartDays.map(d => byDay[d]);
-
-    if(charts.trend) charts.trend.destroy();
-    const ctx = document.getElementById("chart-trend").getContext("2d");
-    charts.trend = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: chartDays.map(d => d.split("-").slice(1).join("/")),
-            datasets: [{ 
-                data: chartVals, 
-                borderColor: '#f5a623', 
-                backgroundColor: 'rgba(245, 166, 35, 0.1)',
-                fill: true,
-                tension: 0.3 
-            }]
-        },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }, 
-            scales: { 
-                y: { grid: { color: '#222' }, ticks: { color: '#555' } }, 
-                x: { grid: { display: false }, ticks: { color: '#555' } } 
-            } 
-        }
-    });
-
-    const tb = document.getElementById("daily-table");
-    tb.innerHTML = Object.entries(byDay).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,v]) => `
-        <tr><td>${d}</td><td class="r">฿${fmt(v)}</td></tr>
-    `).join("");
+function setPeriod(p) {
+  currentPeriod = p;
+  document.getElementById("tog-daily").classList.toggle("active", p === "daily");
+  document.getElementById("tog-weekly").classList.toggle("active", p === "weekly");
+  document.getElementById("daily-chart-title").textContent =
+    p === "daily" ? "ยอดขายรายวัน (30 วัน)" : "ยอดขายรายสัปดาห์";
+  renderDaily();
 }
-</script>
-</body>
-</html>
+
+// ── COMPUTE ──────────────────────────────────────────
+function compute() {
+  const orders = allOrders;
+  const totalRevenue = orders.reduce((s,o) => s + o.actual, 0);
+  const totalBilled = orders.reduce((s,o) => s + o.total, 0);
+  const avgBill = orders.length ? totalRevenue / orders.length : 0;
+
+  // by channel
+  const byChannel = {};
+  orders.forEach(o => {
+    if (!byChannel[o.channel]) byChannel[o.channel] = {count:0,total:0,actual:0};
+    byChannel[o.channel].count++;
+    byChannel[o.channel].total += o.total;
+    byChannel[o.channel].actual += o.actual;
+  });
+
+  // daily
+  const byDay = {};
+  orders.forEach(o => {
+    if (!o.time) return;
+    const day = new Date(o.time).toISOString().split("T")[0];
+    if (!byDay[day]) byDay[day] = {date:day,revenue:0,orders:0};
+    byDay[day].revenue += o.actual;
+    byDay[day].orders++;
+  });
+  const dailyData = Object.values(byDay).sort((a,b) => a.date.localeCompare(b.date)).slice(-30);
+
+  // weekly
+  const byWeek = {};
+  orders.forEach(o => {
+    if (!o.time) return;
+    const d = new Date(o.time);
+    const wk = Math.ceil(d.getDate()/7);
+    const key = d.getFullYear()+"-"+String(d.getMonth()).padStart(2,"0")+"-"+wk;
+    const label = d.toLocaleDateString("th-TH",{month:"short",year:"2-digit"}) + " W" + wk;
+    if (!byWeek[key]) byWeek[key] = {key,label,revenue:0,orders:0};
+    byWeek[key].revenue += o.actual;
+    byWeek[key].orders++;
+  });
+  const weeklyData = Object.values(byWeek).sort((a,b) => a.key.localeCompare(b.key)).slice(-8);
+
+  // hourly
+  const byHour = Array.from({length:24},(_,i) => ({hour:i,orders:0,revenue:0}));
+  orders.forEach(o => {
+    if (!o.time) return;
+    const h = new Date(o.time).getHours();
+    byHour[h].orders++;
+    byHour[h].revenue += o.actual;
+  });
+
+  // top menus
+  const menuCount = {};
+  orders.forEach(o => {
+    const raw = String(o.items || "");
+    // รองรับ JSON array format และ CSV format
+    let items = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(item => {
+          if (item.name) menuCount[item.name] = (menuCount[item.name]||0) + (item.qty||1);
+        });
+        return;
+      }
+    } catch {}
+    // CSV format: "A1 ข้าวx2 | A2 ข้าวx1"
+    const matches = raw.match(/([^|]+?)x(\d+)/g) || [];
+    matches.forEach(m => {
+      const p = m.match(/(.+?)x(\d+)/);
+      if (p) {
+        const name = p[1].replace(/["'\[\]{}]/g,"").trim();
+        if (name && name.length > 1) menuCount[name] = (menuCount[name]||0) + Number(p[2]);
+      }
+    });
+  });
+  const topMenus = Object.entries(menuCount).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,qty])=>({name,qty}));
+
+  return {totalRevenue,totalBilled,avgBill,byChannel,dailyData,weeklyData,byHour,topMenus,orderCount:orders.length};
+}
+
+// ── RENDER ALL ────────────────────────────────────────
+function renderAll() {
+  const s = compute();
+  renderOverview(s);
+  renderDaily();
+  renderMenu(s);
+  renderChannel(s);
+  renderHour(s);
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+const chartDefaults = {
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { display: false }, ticks: { color: "#555", font: { size: 10 } }, border: { display: false } },
+    y: { grid: { color: "#1a1a1a" }, ticks: { color: "#555", font: { size: 10 } }, border: { display: false } }
+  }
+};
+
+// OVERVIEW
+function renderOverview(s) {
+  document.getElementById("s-revenue").textContent = "฿" + fmt(s.totalRevenue);
+  document.getElementById("s-count").textContent = s.orderCount;
+  document.getElementById("s-avg").textContent = "฿" + fmt(Math.round(s.avgBill));
+  const pct = s.totalBilled > 0 ? Math.round((s.totalRevenue/s.totalBilled)*100) : 0;
+  document.getElementById("s-pct").textContent = pct + "%";
+  document.getElementById("s-billed").textContent = "บิล ฿" + fmt(s.totalBilled);
+
+  // channel bars
+  const el = document.getElementById("channel-bars");
+  el.innerHTML = "";
+  Object.entries(s.byChannel).forEach(([ch, d]) => {
+    const color = CH_COLORS[ch] || "#888";
+    const pct = s.totalRevenue > 0 ? (d.actual/s.totalRevenue)*100 : 0;
+    el.innerHTML += `
+      <div class="ch-row">
+        <div class="ch-meta">
+        
