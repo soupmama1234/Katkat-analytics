@@ -103,8 +103,10 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
   <div class="empty-sub" id="empty-sub">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
   <div style="display:flex;flex-direction:column;gap:12px;width:100%;align-items:center" id="empty-btns">
     <button class="btn-primary" id="btn-supabase" style="display:none" onclick="loadSupabase()">⚡ ดึงข้อมูลจาก Supabase</button>
-    <button class="btn-secondary" onclick="document.getElementById('csv-file').click()">📂 Upload CSV Backup</button>
-    <input id="csv-file" type="file" accept=".csv" style="position:absolute;left:-9999px;opacity:0" onchange="loadCSV(event)">
+    <div style="position:relative;width:100%;max-width:320px">
+      <div class="btn-secondary" style="pointer-events:none">📂 Upload CSV Backup</div>
+      <input type="file" accept=".csv" onchange="loadCSV(event)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0">
+    </div>
   </div>
 </div>
 
@@ -118,7 +120,10 @@ td.green{font-family:'IBM Plex Mono',monospace;color:var(--green);font-weight:60
     </div>
     <div class="header-right">
       <button class="icon-btn" id="btn-refresh" onclick="loadSupabase()" style="display:none">🔄</button>
-      <button class="icon-btn" onclick="document.getElementById('csv-file').click()">📂</button>
+      <div style="position:relative">
+        <div class="icon-btn" style="pointer-events:none">📂</div>
+        <input type="file" accept=".csv" onchange="loadCSV(event)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0">
+      </div>
     </div>
   </div>
 
@@ -476,7 +481,4 @@ function renderOverview(s) {
     el.innerHTML += `
       <div class="ch-row">
         <div class="ch-meta">
-          <span class="ch-name" style="color:${color}">${ch.toUpperCase()}</span>
-          <span style="font-family:monospace">฿${fmt(d.actual)} <span style="color:#444;font-size:11px">(${d.count} บิล)</span></span>
-        </div>
-        <div class="bar-bg"><div cla
+        
