@@ -16,10 +16,6 @@
 }
 html,body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;min-height:100vh; overflow-x: hidden;}
 button{font-family:inherit;cursor:pointer}
-input[type=file]{display:none}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--bg2)}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 /* Layout */
 #app{max-width:800px;margin:0 auto;padding-bottom:80px}
@@ -29,34 +25,32 @@ input[type=file]{display:none}
 .header-left .sub{font-size:11px;color:#444;margin-top:2px}
 .header-right{display:flex;gap:8px}
 
-/* Button Fixes */
+/* Button & Upload Fix */
 .icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted2);padding:8px 12px;border-radius:8px;font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
-.upload-label { position: relative; overflow: hidden; cursor: pointer; }
-.upload-label input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+.upload-label { position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.upload-label input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; font-size: 0; }
 
 /* Tabs */
 .tabs{display:flex;padding:16px 16px 0;overflow-x:auto;gap:0;border-bottom:1px solid var(--bg3);margin-top:4px}
 .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:8px 14px;font-size:13px;font-family:inherit;white-space:nowrap;transition:all 0.2s}
 .tab.active{border-bottom-color:var(--orange);color:var(--orange);font-weight:600}
 
-/* Cards */
+/* Cards & Stats */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
 .section-pad{padding:16px}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
 .stat-label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
 .stat-value{font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1.2}
-.stat-sub{font-size:12px;color:#555;margin-top:4px}
 .section-title{font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
 
-/* Table & Charts */
+/* Table */
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:8px 0;color:#555;font-weight:500;border-bottom:1px solid var(--border)}
 th.r,td.r{text-align:right}
 td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
-.chart-wrap{position:relative;margin-top:8px}
 
-/* Empty / loading */
+/* Empty State */
 #empty{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center}
 .btn-primary{background:var(--orange);color:#000;border:none;padding:14px 20px;border-radius:10px;font-size:14px;font-weight:700;width:100%;max-width:320px}
 .btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:14px 20px;border-radius:10px;font-size:14px;font-weight:600;width:100%;max-width:320px;display:flex;align-items:center;justify-content:center;gap:8px; cursor:pointer;}
@@ -96,8 +90,6 @@ td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
   <div class="tabs">
     <button class="tab active" onclick="switchTab('overview')">ภาพรวม</button>
     <button class="tab" onclick="switchTab('daily')">รายวัน</button>
-    <button class="tab" onclick="switchTab('menu')">เมนู</button>
-    <button class="tab" onclick="switchTab('channel')">ช่องทาง</button>
   </div>
 
   <div id="tab-overview" class="tab-content">
@@ -113,8 +105,8 @@ td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
     </div>
     <div class="section-pad">
         <div class="card">
-            <div class="section-title">ยอดขาย 30 วันล่าสุด</div>
-            <div class="chart-wrap"><canvas id="chart-trend" height="140"></canvas></div>
+            <div class="section-title">ยอดขาย 7 วันล่าสุด</div>
+            <div style="height:200px"><canvas id="chart-trend"></canvas></div>
         </div>
     </div>
   </div>
@@ -124,89 +116,88 @@ td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
       <div class="card">
         <div class="section-title">ตารางสรุปรายวัน</div>
         <table>
-          <thead><tr><th>วันที่</th><th class="r">ออเดอร์</th><th class="r">ยอดรับ</th></tr></thead>
+          <thead><tr><th>วันที่</th><th class="r">ยอดรับ</th></tr></thead>
           <tbody id="daily-table"></tbody>
         </table>
       </div>
     </div>
   </div>
-
-  <div id="tab-menu" class="tab-content" style="display:none; padding:16px;">
-      <div class="card"><div class="section-title">เมนูขายดี</div><div id="menu-list"></div></div>
-  </div>
-  <div id="tab-channel" class="tab-content" style="display:none; padding:16px;">
-      <div class="card"><div class="section-title">สัดส่วนช่องทาง</div><canvas id="chart-pie" height="200"></canvas></div>
-  </div>
-
 </div>
 
 <script>
-// ── CONFIG (ใส่ของจริงของคุณตรงนี้) ───────────────────
-const SUPABASE_URL = "https://xxxx.supabase.co"; 
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiI...";
+// ── CONFIG (เติม URL และ KEY ของคุณตรงนี้) ────────────────
+const SUPABASE_URL = ""; 
+const SUPABASE_KEY = "";
 
-// ── STATE ────────────────────────────────────────────
 let allOrders = [];
 let charts = {};
 const fmt = n => (n||0).toLocaleString("th-TH");
 
-// ── INIT ─────────────────────────────────────────────
 window.onload = () => {
-  if (SUPABASE_URL && SUPABASE_KEY && !SUPABASE_URL.includes("xxxx")) {
+  if (SUPABASE_URL && SUPABASE_KEY) {
     document.getElementById("btn-supabase").style.display = "block";
     document.getElementById("btn-refresh").style.display = "block";
+    loadSupabase();
   }
 };
 
-// ── LOADERS ──────────────────────────────────────────
+// ── CORE FUNCTIONS ───────────────────────────────────
 async function loadSupabase() {
-  setLoading("กำลังดึงข้อมูล...");
+  setLoading("กำลังเชื่อมต่อ Supabase...");
   try {
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
     if (error) throw error;
     allOrders = data.map(normalizeRow);
     showApp("supabase");
-  } catch(e) { setError("Error: " + e.message); }
+  } catch(e) { setError("เชื่อมต่อไม่ได้: " + e.message); }
 }
 
 function loadCSV(e) {
   const file = e.target.files[0];
   if (!file) return;
   setLoading("กำลังอ่านไฟล์ CSV...");
+  
   const reader = new FileReader();
   reader.onload = ev => {
     try {
       const rows = parseCSV(ev.target.result);
+      if (rows.length === 0) throw new Error("ไฟล์ว่างเปล่าหรือรูปแบบไม่ถูกต้อง");
       allOrders = rows.map(normalizeRow);
       showApp("csv");
-    } catch(err) { setError("ไฟล์ผิดพลาด"); }
+    } catch(err) { 
+      console.error(err);
+      setError("อ่านไฟล์ไม่ได้: " + err.message); 
+    }
   };
-  reader.readAsText(file, "UTF-8"); // หรือเปลี่ยนเป็น "windows-874" ถ้าภาษาไทยเพี้ยน
+  // ลองอ่านแบบ UTF-8 ก่อน ถ้าภาษาไทยเพี้ยนค่อยแก้เป็น windows-874
+  reader.readAsText(file, "UTF-8");
 }
 
 function parseCSV(text) {
-  const lines = text.trim().split("\n");
-  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g,""));
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+
+  // แยก Header (รองรับ , และ ;)
+  const delimiter = lines[0].indexOf(';') > -1 ? ';' : ',';
+  const headers = lines[0].split(delimiter).map(h => h.trim().replace(/"/g,""));
+  
   return lines.slice(1).map(line => {
-    const vals = line.split(",").map(v => v.trim().replace(/"/g,""));
+    const vals = line.split(delimiter).map(v => v.trim().replace(/"/g,""));
     const obj = {};
-    headers.forEach((h,i) => obj[h] = vals[i]);
+    headers.forEach((h, i) => { if(h) obj[h] = vals[i] || ""; });
     return obj;
   });
 }
 
 function normalizeRow(row) {
   return {
-    time: row.created_at || row["วันที่/เวลา"] || "",
-    channel: (row.channel || row["ช่องทาง"] || "pos").toLowerCase(),
-    total: Number(row.total || row["ยอดรวมเมนู"] || 0),
-    actual: Number(row.actual_amount || row["ยอดรับจริง"] || 0),
-    items: row.items || row["รายการสินค้า"] || ""
+    time: row.created_at || row["วันที่/เวลา"] || row["Date"] || "",
+    actual: Number(row.actual_amount || row["ยอดรับจริง"] || row["Actual"] || 0),
   };
 }
 
-// ── UI CONTROL ────────────────────────────────────────
+// ── UI HELPERS ───────────────────────────────────────
 function showApp(source) {
   document.getElementById("empty").style.display = "none";
   document.getElementById("app").style.display = "block";
@@ -231,35 +222,50 @@ function switchTab(id) {
   event.target.classList.add("active");
 }
 
-// ── RENDER ────────────────────────────────────────────
 function renderAll() {
     const totalRevenue = allOrders.reduce((s,o) => s + o.actual, 0);
     document.getElementById("s-revenue").textContent = "฿" + fmt(totalRevenue);
     document.getElementById("s-count").textContent = allOrders.length;
     
-    // Render Trend Chart
     const byDay = {};
     allOrders.forEach(o => {
-        const d = o.time.split("T")[0];
+        if(!o.time) return;
+        const d = o.time.split("T")[0] || o.time.split(" ")[0];
         byDay[d] = (byDay[d]||0) + o.actual;
     });
-    const days = Object.keys(byDay).sort().slice(-7);
-    const vals = days.map(d => byDay[d]);
+
+    const sortedDays = Object.keys(byDay).sort();
+    const chartDays = sortedDays.slice(-7);
+    const chartVals = chartDays.map(d => byDay[d]);
 
     if(charts.trend) charts.trend.destroy();
-    charts.trend = new Chart(document.getElementById("chart-trend"), {
+    const ctx = document.getElementById("chart-trend").getContext("2d");
+    charts.trend = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: days.map(d => d.split("-")[2]),
-            datasets: [{ data: vals, borderColor: '#f5a623', tension: 0.4, fill: false }]
+            labels: chartDays.map(d => d.split("-").slice(1).join("/")),
+            datasets: [{ 
+                data: chartVals, 
+                borderColor: '#f5a623', 
+                backgroundColor: 'rgba(245, 166, 35, 0.1)',
+                fill: true,
+                tension: 0.3 
+            }]
         },
-        options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { grid: { color: '#222' }, ticks: { color: '#555' } }, 
+                x: { grid: { display: false }, ticks: { color: '#555' } } 
+            } 
+        }
     });
 
-    // Daily Table
     const tb = document.getElementById("daily-table");
     tb.innerHTML = Object.entries(byDay).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,v]) => `
-        <tr><td>${d}</td><td class="r">-</td><td class="r">฿${fmt(v)}</td></tr>
+        <tr><td>${d}</td><td class="r">฿${fmt(v)}</td></tr>
     `).join("");
 }
 </script>
