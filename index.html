@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>KATKAT Analytics</title>
-  
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   
@@ -14,263 +13,256 @@
 
   <style>
     :root {
-      --bg: #000000;
-      --surface: #121212;
-      --border: #222222;
-      --primary: #FF9F0A;
-      --success: #32D74B;
-      --text: #ffffff;
-      --text-dim: #8E8E93;
+      --bg: #000000; --surface: #121212; --border: #222222;
+      --primary: #FF9F0A; --success: #32D74B; --text: #ffffff; --text-dim: #8E8E93;
     }
-
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
     body {
-      background-color: var(--bg);
-      color: var(--text);
+      background: var(--bg); color: var(--text);
       font-family: 'IBM Plex Sans Thai', sans-serif;
-      margin: 0;
-      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      margin: 0; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
       user-select: none;
     }
-
-    .app-container {
-      padding: 20px;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-
-    /* Top Header */
-    .app-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 32px;
-    }
+    .app-container { padding: 20px; max-width: 500px; margin: 0 auto; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
     .app-header h1 { font-size: 24px; font-weight: 700; margin: 0; }
-    .status-dot { 
-      width: 8px; height: 8px; background: var(--success); 
-      border-radius: 50%; display: inline-block; margin-right: 6px;
-      box-shadow: 0 0 10px var(--success);
-    }
-
-    /* Main Summary Card */
-    .hero-card {
-      background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
-      border: 1px solid var(--border);
-      border-radius: 28px;
-      padding: 32px 24px;
-      margin-bottom: 24px;
-      text-align: center;
-    }
+    .status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block; margin-right: 6px; box-shadow: 0 0 10px var(--success); }
+    .hero-card { background: linear-gradient(145deg, #1a1a1a, #0a0a0a); border: 1px solid var(--border); border-radius: 28px; padding: 32px 24px; margin-bottom: 24px; text-align: center; }
     .hero-label { color: var(--text-dim); font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
-    .hero-value { 
-      font-family: 'Inter', sans-serif; 
-      font-size: 48px; 
-      font-weight: 800; 
-      color: var(--primary);
-      margin: 12px 0;
-      letter-spacing: -1px;
-    }
+    .hero-value { font-family: 'Inter', sans-serif; font-size: 48px; font-weight: 800; color: var(--primary); margin: 12px 0; letter-spacing: -1px; }
     .hero-sub { color: var(--text-dim); font-size: 15px; }
-
-    /* Secondary Stats */
     .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
-    .small-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 20px;
-    }
+    .small-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; }
     .small-label { color: var(--text-dim); font-size: 13px; margin-bottom: 8px; }
     .small-value { font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; }
-
-    /* Chart Section */
     .section-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--text-dim); }
-    .chart-container {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 20px;
-      height: 260px;
-      margin-bottom: 32px;
-    }
-
-    /* Daily List */
-    .list-container { background: var(--surface); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; }
-    .list-item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 18px 24px; border-bottom: 1px solid var(--border);
-    }
+    .chart-container { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 20px; height: 260px; margin-bottom: 32px; }
+    .list-container { background: var(--surface); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 32px; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid var(--border); }
     .list-item:last-child { border-bottom: none; }
     .item-date { font-weight: 500; font-size: 16px; }
     .item-val { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--success); }
 
-    /* Floating Action Button */
-    .fab {
-      position: fixed; bottom: 40px; right: 24px;
-      width: 60px; height: 60px; background: var(--primary);
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 10px 20px rgba(255,159,10,0.3); border: none; z-index: 100;
-    }
+    /* เมนูขายดี */
+    .rank-list { background: var(--surface); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 32px; }
+    .rank-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); gap: 14px; }
+    .rank-item:last-child { border-bottom: none; }
+    .rank-no { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 800; color: #333; width: 20px; text-align: center; flex-shrink: 0; }
+    .rank-no.gold { color: #FFD60A; }
+    .rank-no.silver { color: #8E8E93; }
+    .rank-no.bronze { color: #CD7F32; }
+    .rank-info { flex: 1; min-width: 0; }
+    .rank-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rank-bar-wrap { height: 3px; background: #1a1a1a; border-radius: 2px; margin-top: 6px; }
+    .rank-bar { height: 100%; background: var(--primary); border-radius: 2px; }
+    .rank-right { text-align: right; flex-shrink: 0; }
+    .rank-qty { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; color: var(--primary); }
+    .rank-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
-    /* Loading Overlay */
-    #loader {
-      position: fixed; inset: 0; background: #000;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 1000; transition: opacity 0.4s;
-    }
+    /* หมวดหมู่ */
+    .cat-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+    .cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; }
+    .cat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .cat-name { font-size: 15px; font-weight: 600; }
+    .cat-val { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; color: var(--success); }
+    .cat-bar-wrap { height: 3px; background: #1a1a1a; border-radius: 2px; }
+    .cat-bar { height: 100%; background: var(--success); border-radius: 2px; }
+    .cat-sub { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+    .fab { position: fixed; bottom: 40px; right: 24px; width: 60px; height: 60px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(255,159,10,0.3); border: none; z-index: 100; cursor: pointer; }
+    #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; transition: opacity 0.4s; }
     .spinner { width: 40px; height: 40px; border: 4px solid #222; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-  <div id="loader">
-    <div class="spinner"></div>
-    <p style="margin-top:20px; color: var(--text-dim);">KATKAT ANALYTICS</p>
+<div id="loader">
+  <div class="spinner"></div>
+  <p style="margin-top:20px;color:var(--text-dim)">KATKAT ANALYTICS</p>
+</div>
+
+<div class="app-container">
+  <header class="app-header">
+    <h1>KATKAT สรุปยอด</h1>
+    <div><span class="status-dot"></span><span style="font-size:12px;color:var(--text-dim)">LIVE</span></div>
+  </header>
+
+  <div class="hero-card">
+    <div class="hero-label">ยอดขายรับจริงทั้งหมด</div>
+    <div class="hero-value" id="total-revenue">฿0</div>
+    <div class="hero-sub" id="total-count">0 ออเดอร์</div>
   </div>
 
-  <div class="app-container">
-    <header class="app-header">
-      <h1>KATKAT สรุปยอด</h1>
-      <div><span class="status-dot"></span><span style="font-size:12px; color:var(--text-dim)">LIVE</span></div>
-    </header>
-
-    <div class="hero-card">
-      <div class="hero-label">ยอดขายรับจริงทั้งหมด</div>
-      <div class="hero-value" id="total-revenue">฿0</div>
-      <div class="hero-sub" id="total-count">0 ออเดอร์</div>
-    </div>
-
-    <div class="stats-row">
-      <div class="small-card">
-        <div class="small-label">เฉลี่ยต่อบิล</div>
-        <div class="small-value" id="avg-bill">฿0</div>
-      </div>
-      <div class="small-card">
-        <div class="small-label">ยอดขายวันนี้</div>
-        <div class="small-value" id="today-rev">฿0</div>
-      </div>
-    </div>
-
-    <div class="section-title">แนวโน้ม 7 วันล่าสุด</div>
-    <div class="chart-container">
-      <canvas id="salesChart"></canvas>
-    </div>
-
-    <div class="section-title">ประวัติย้อนหลัง</div>
-    <div class="list-container" id="daily-list">
-      </div>
+  <div class="stats-row">
+    <div class="small-card"><div class="small-label">เฉลี่ยต่อบิล</div><div class="small-value" id="avg-bill">฿0</div></div>
+    <div class="small-card"><div class="small-label">ยอดขายวันนี้</div><div class="small-value" id="today-rev">฿0</div></div>
   </div>
 
-  <button class="fab" onclick="init()">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-  </button>
+  <div class="section-title">แนวโน้ม 7 วันล่าสุด</div>
+  <div class="chart-container"><canvas id="salesChart"></canvas></div>
 
-  <script>
-    // --- STEP 1: CONFIG ---
-    const SB_URL = "https://uhruejkycwcxjhcokbfm.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
-    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
-    let myChart = null;
+  <div class="section-title">🏆 เมนูขายดี Top 10</div>
+  <div class="rank-list" id="menu-rank"></div>
 
-    // --- STEP 2: LOGIC ---
-    async function init() {
-      document.getElementById('loader').style.opacity = 1;
-      document.getElementById('loader').style.display = 'flex';
-      
-      try {
-        const { data, error } = await supabaseClient
-          .from('orders')
-          .select('*')
-          .order('created_at', { ascending: false });
+  <div class="section-title">📂 ยอดขายแยกหมวดหมู่</div>
+  <div class="cat-grid" id="cat-grid"></div>
 
-        if (error) throw error;
-        processAndRender(data);
-      } catch (e) {
-        alert("Error: " + e.message);
-      } finally {
-        setTimeout(() => {
-          document.getElementById('loader').style.opacity = 0;
-          setTimeout(() => document.getElementById('loader').style.display = 'none', 400);
-        }, 500);
+  <div class="section-title">ประวัติย้อนหลัง</div>
+  <div class="list-container" id="daily-list"></div>
+</div>
+
+<button class="fab" onclick="init()">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+  </svg>
+</button>
+
+<script>
+  const SB_URL = "https://uhruejkycwcxjhcokbfm.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
+  const sb = supabase.createClient(SB_URL, SB_KEY);
+  let myChart = null;
+
+  async function init() {
+    showLoader(true);
+    try {
+      const [ordersRes, productsRes] = await Promise.all([
+        sb.from('orders').select('*').order('created_at', { ascending: false }),
+        sb.from('products').select('id, name, category')
+      ]);
+      if (ordersRes.error) throw ordersRes.error;
+
+      // map ชื่อเมนู → หมวดหมู่
+      const catMap = {};
+      (productsRes.data || []).forEach(p => { catMap[p.name] = p.category || "ทั่วไป"; });
+
+      processAndRender(ordersRes.data, catMap);
+    } catch(e) {
+      alert("Error: " + e.message);
+    } finally {
+      showLoader(false);
+    }
+  }
+
+  function showLoader(show) {
+    const el = document.getElementById('loader');
+    if (show) { el.style.opacity = 1; el.style.display = 'flex'; }
+    else { setTimeout(() => { el.style.opacity = 0; setTimeout(() => el.style.display = 'none', 400); }, 500); }
+  }
+
+  function processAndRender(orders, catMap) {
+    const fmt = n => (n||0).toLocaleString('th-TH');
+
+    // ยอดรวม
+    const totalRevenue = orders.reduce((s,r) => s + (r.actual_amount||0), 0);
+    const orderCount = orders.length;
+    const avg = orderCount > 0 ? totalRevenue / orderCount : 0;
+    document.getElementById('total-revenue').innerText = '฿' + fmt(totalRevenue);
+    document.getElementById('total-count').innerText = fmt(orderCount) + ' ออเดอร์';
+    document.getElementById('avg-bill').innerText = '฿' + fmt(Math.round(avg));
+
+    // รายวัน
+    const dailyMap = {};
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    orders.forEach(r => {
+      const date = (r.created_at||'').split('T')[0];
+      if (!date) return;
+      dailyMap[date] = (dailyMap[date]||0) + (r.actual_amount||0);
+    });
+    document.getElementById('today-rev').innerText = '฿' + fmt(dailyMap[todayStr]||0);
+
+    // เมนู & หมวดหมู่ จาก items
+    const menuCount = {}, menuRevenue = {}, catRevenue = {}, catCount = {};
+
+    orders.forEach(r => {
+      let items = r.items;
+      if (!items) return;
+      if (typeof items === 'string') { try { items = JSON.parse(items); } catch { return; } }
+      if (!Array.isArray(items)) return;
+
+      items.forEach(item => {
+        const name = item.name || 'ไม่ระบุ';
+        const qty = Number(item.qty || item.quantity || 1);
+        const price = Number(item.price || 0);
+        const cat = catMap[name] || item.category || 'ทั่วไป';
+
+        menuCount[name] = (menuCount[name]||0) + qty;
+        menuRevenue[name] = (menuRevenue[name]||0) + (price * qty);
+        catRevenue[cat] = (catRevenue[cat]||0) + (price * qty);
+        catCount[cat] = (catCount[cat]||0) + qty;
+      });
+    });
+
+    // เมนูขายดี Top 10
+    const topMenus = Object.entries(menuCount).sort((a,b) => b[1]-a[1]).slice(0,10);
+    const maxQty = topMenus[0]?.[1] || 1;
+    document.getElementById('menu-rank').innerHTML = topMenus.length
+      ? topMenus.map(([name, qty], i) => {
+          const cls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+          const pct = Math.round((qty/maxQty)*100);
+          return `<div class="rank-item">
+            <div class="rank-no ${cls}">${i+1}</div>
+            <div class="rank-info">
+              <div class="rank-name">${name}</div>
+              <div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%"></div></div>
+            </div>
+            <div class="rank-right">
+              <div class="rank-qty">${qty} ชิ้น</div>
+              <div class="rank-sub">฿${fmt(menuRevenue[name])}</div>
+            </div>
+          </div>`;
+        }).join('')
+      : '<div style="padding:24px;text-align:center;color:#555;font-size:14px">ยังไม่มีข้อมูลเมนู</div>';
+
+    // หมวดหมู่
+    const cats = Object.entries(catRevenue).sort((a,b) => b[1]-a[1]);
+    const maxCat = cats[0]?.[1] || 1;
+    document.getElementById('cat-grid').innerHTML = cats.length
+      ? cats.map(([cat, rev]) => {
+          const pct = Math.round((rev/maxCat)*100);
+          return `<div class="cat-card">
+            <div class="cat-row">
+              <span class="cat-name">${cat}</span>
+              <span class="cat-val">฿${fmt(rev)}</span>
+            </div>
+            <div class="cat-bar-wrap"><div class="cat-bar" style="width:${pct}%"></div></div>
+            <div class="cat-sub">${catCount[cat]} รายการ</div>
+          </div>`;
+        }).join('')
+      : '<div style="padding:24px;text-align:center;color:#555;font-size:14px">ยังไม่มีข้อมูลหมวดหมู่</div>';
+
+    // ประวัติรายวัน
+    document.getElementById('daily-list').innerHTML = Object.entries(dailyMap)
+      .sort((a,b) => b[0].localeCompare(a[0])).slice(0,14)
+      .map(([date, val]) => {
+        const d = new Date(date).toLocaleDateString('th-TH', {day:'numeric', month:'short'});
+        return `<div class="list-item"><span class="item-date">${d}</span><span class="item-val">฿${fmt(val)}</span></div>`;
+      }).join('');
+
+    renderChart(dailyMap);
+  }
+
+  function renderChart(dailyMap) {
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const labels = Object.keys(dailyMap).sort().slice(-7);
+    const values = labels.map(l => dailyMap[l]);
+    if (myChart) myChart.destroy();
+    myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels.map(l => l.split('-')[2]),
+        datasets: [{ data: values, borderColor: '#FF9F0A', borderWidth: 4, tension: 0.4, fill: true, backgroundColor: 'rgba(255,159,10,0.05)', pointRadius: 0 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false }, ticks: { color: '#555' } }, y: { display: false } }
       }
-    }
+    });
+  }
 
-    function processAndRender(orders) {
-      // 1. ยอดรวมทั้งหมด
-      const totalRevenue = orders.reduce((s, r) => s + (r.actual_amount || 0), 0);
-      const orderCount = orders.length;
-      const avg = orderCount > 0 ? totalRevenue / orderCount : 0;
-
-      document.getElementById('total-revenue').innerText = '฿' + totalRevenue.toLocaleString();
-      document.getElementById('total-count').innerText = orderCount.toLocaleString() + ' ออเดอร์';
-      document.getElementById('avg-bill').innerText = '฿' + Math.round(avg).toLocaleString();
-
-      // 2. จัดกลุ่มรายวัน
-      const dailyMap = {};
-      const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-      
-      orders.forEach(r => {
-        const date = r.created_at.split('T')[0];
-        dailyMap[date] = (dailyMap[date] || 0) + (r.actual_amount || 0);
-      });
-
-      document.getElementById('today-rev').innerText = '฿' + (dailyMap[todayStr] || 0).toLocaleString();
-
-      // 3. แสดงรายการประวัติ
-      const listDiv = document.getElementById('daily-list');
-      listDiv.innerHTML = '';
-      Object.entries(dailyMap).slice(0, 14).forEach(([date, val]) => {
-        const dateDisplay = new Date(date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-        listDiv.innerHTML += `
-          <div class="list-item">
-            <span class="item-date">${dateDisplay}</span>
-            <span class="item-val">฿${val.toLocaleString()}</span>
-          </div>
-        `;
-      });
-
-      // 4. วาดกราฟ
-      renderChart(dailyMap);
-    }
-
-    function renderChart(dailyMap) {
-      const ctx = document.getElementById('salesChart').getContext('2d');
-      const labels = Object.keys(dailyMap).sort().slice(-7);
-      const dataValues = labels.map(l => dailyMap[l]);
-
-      if (myChart) myChart.destroy();
-      
-      myChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels.map(l => l.split('-')[2]), // เอาแค่เลขวันที่
-          datasets: [{
-            data: dataValues,
-            borderColor: '#FF9F0A',
-            borderWidth: 4,
-            tension: 0.4,
-            fill: true,
-            backgroundColor: 'rgba(255, 159, 10, 0.05)',
-            pointRadius: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { display: false }, ticks: { color: '#555' } },
-            y: { display: false }
-          }
-        }
-      });
-    }
-
-    // เริ่มทำงาน
-    init();
-  </script>
+  init();
+</script>
 </body>
 </html>
