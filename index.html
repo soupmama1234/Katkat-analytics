@@ -4,137 +4,92 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>KATKAT Manager Pro</title>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@700;800&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg:#000; --surface:#121212; --border:#222; --primary:#FF9F0A; --success:#32D74B; --danger:#FF453A; --text:#fff; --dim:#8E8E93;
-      --pos:#ffffff; --grab:#00B14F; --lineman:#00A84F; --shopee:#EE4D2D;
-    }
-    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans Thai',sans-serif; margin:0; padding:env(safe-area-inset-top) 0 100px; user-select:none; }
-    .wrap { max-width:500px; margin:0 auto; padding:20px; }
-    
-    .nav { display:flex; background:var(--surface); border-radius:16px; padding:4px; margin-bottom:24px; gap:4px; border:1px solid var(--border); position:sticky; top:10px; z-index:100; }
-    .nav-btn { flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:11px; font-weight:600; padding:10px 2px; border-radius:12px; cursor:pointer; }
-    .nav-btn.active { background:var(--primary); color:#000; }
-
-    .hero { background:linear-gradient(145deg,#1a1a1a,#0a0a0a); border:1px solid var(--border); border-radius:28px; padding:28px 24px; margin-bottom:16px; text-align:center; }
-    .hero-val { font-family:'Inter',sans-serif; font-size:44px; font-weight:800; color:var(--primary); margin:8px 0; letter-spacing:-1px; }
-    .sec { font-size:15px; font-weight:700; color:var(--dim); margin:22px 0 12px; }
-    .page { display:none; }
-    .page.active { display:block; }
-    
-    input { width:100%; background:#1c1c1e; border:1px solid var(--border); border-radius:14px; padding:14px; color:#fff; font-size:16px; font-family:inherit; margin-bottom:12px; }
-    label { display:block; font-size:12px; color:var(--dim); margin-bottom:6px; margin-left:4px; }
-    .btn-save { width:100%; background:var(--primary); color:#000; border:none; border-radius:16px; padding:18px; font-weight:700; font-size:16px; margin-top:10px; }
-    
-    .card-list { background:var(--surface); border:1px solid var(--border); border-radius:24px; overflow:hidden; }
-    .list-item { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); }
-    .list-item:last-child { border-bottom:none; }
-    
-    .pbar-w { flex:1; height:5px; background:#1a1a1a; border-radius:3px; margin:0 12px; }
-    .pbar { height:100%; border-radius:3px; transition:width 0.6s ease; }
-
-    .hmgrid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
-    .hmcell { aspect-ratio:1; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; font-family:'Inter',sans-serif; font-weight:600; }
-
-    #loader { position:fixed; inset:0; background:#000; display:flex; align-items:center; justify-content:center; z-index:1000; }
-    .spinner { width:32px; height:32px; border:3px solid #222; border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    :root{--bg:#000;--surface:#121212;--border:#222;--primary:#FF9F0A;--success:#32D74B;--danger:#FF453A;--text:#fff;--dim:#8E8E93;--pos:#fff;--grab:#00B14F;--lineman:#00A84F;--shopee:#EE4D2D}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;margin:0;padding:env(safe-area-inset-top) 0 100px;user-select:none}
+    .wrap{max-width:500px;margin:0 auto;padding:20px}
+    .nav{display:flex;background:var(--surface);border-radius:16px;padding:4px;margin-bottom:24px;gap:4px;border:1px solid var(--border);position:sticky;top:10px;z-index:100}
+    .nav-btn{flex:1;background:none;border:none;color:var(--dim);font-family:inherit;font-size:11px;font-weight:600;padding:10px 2px;border-radius:12px;cursor:pointer}
+    .nav-btn.active{background:var(--primary);color:#000}
+    .hero{background:linear-gradient(145deg,#1a1a1a,#0a0a0a);border:1px solid var(--border);border-radius:28px;padding:28px 24px;margin-bottom:16px;text-align:center}
+    .hero-val{font-family:'Inter',sans-serif;font-size:44px;font-weight:800;color:var(--primary);margin:8px 0;letter-spacing:-1px}
+    .sec{font-size:15px;font-weight:700;color:var(--dim);margin:22px 0 12px}
+    .page{display:none}.page.active{display:block}
+    input, select{width:100%;background:#1c1c1e;border:1px solid var(--border);border-radius:14px;padding:14px;color:#fff;font-size:16px;font-family:inherit;margin-bottom:12px;outline:none}
+    label{display:block;font-size:12px;color:var(--dim);margin-bottom:6px;margin-left:4px}
+    .btn-save{width:100%;background:var(--primary);color:#000;border:none;border-radius:16px;padding:18px;font-weight:700;font-size:16px;margin-top:10px}
+    .card-list{background:var(--surface);border:1px solid var(--border);border-radius:24px;overflow:hidden}
+    .list-item{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)}
+    .list-item:last-child{border-bottom:none}
+    .pbar-w{flex:1;height:5px;background:#1a1a1a;border-radius:3px;margin:0 12px}
+    .pbar{height:100%;border-radius:3px;transition:width 0.6s ease}
+    #loader{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:1000}
+    .spinner{width:32px;height:32px;border:3px solid #222;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
 <div id="loader"><div class="spinner"></div></div>
-
 <div class="wrap">
   <nav class="nav">
     <button class="nav-btn active" onclick="showPage('overview',this)">ภาพรวม</button>
     <button class="nav-btn" onclick="showPage('today',this)">วันนี้</button>
     <button class="nav-btn" onclick="showPage('expense',this)">ลงรายจ่าย</button>
     <button class="nav-btn" onclick="showPage('profit',this)">กำไร</button>
-    <button class="nav-btn" onclick="showPage('peak',this)">ช่วงเวลา</button>
   </nav>
 
   <div id="page-overview" class="page active">
     <div class="hero">
       <div style="color:var(--dim);font-size:12px">ยอดรับจริงสะสม</div>
       <div class="hero-val" id="ov-rev">฿0</div>
-      <div id="ov-cnt" style="color:var(--dim);font-size:13px">0 ออเดอร์</div>
     </div>
     <div class="sec">📡 Platform</div>
     <div id="ov-platform" class="card-list"></div>
     <div class="sec">🏆 เมนูขายดี Top 10</div>
     <div id="ov-menu" class="card-list"></div>
-    <div class="sec">🗓 ความร้อนรายวัน (เดือนนี้)</div>
-    <div class="hero" style="padding:20px; background:var(--surface)">
-      <div class="hmgrid" id="heatmap"></div>
-    </div>
   </div>
 
   <div id="page-today" class="page">
-    <div class="hero">
-      <div style="color:var(--dim);font-size:12px">ยอดขายวันนี้</div>
-      <div class="hero-val" id="td-rev">฿0</div>
-    </div>
-    <div class="sec">รายการขายรายออเดอร์</div>
+    <div class="hero"><div style="color:var(--dim);font-size:12px">ยอดขายวันนี้</div><div class="hero-val" id="td-rev">฿0</div></div>
+    <div class="sec">ออเดอร์ล่าสุด</div>
     <div id="td-list" class="card-list"></div>
   </div>
 
   <div id="page-expense" class="page">
     <div class="hero" style="text-align:left; padding:20px">
       <label>รายการที่ซื้อ</label>
-      <input type="text" id="ex-item" list="list-items" placeholder="ระบุชื่อสินค้า...">
-      <datalist id="list-items"></datalist>
+      <input type="text" id="ex-item" placeholder="เช่น นมสด, ไข่ไก่">
       <div style="display:flex; gap:10px">
         <div style="flex:1"><label>จำนวน</label><input type="number" id="ex-qty" oninput="calcExTotal()" placeholder="0"></div>
-        <div style="flex:1"><label>หน่วย</label><input type="text" id="ex-unit" list="list-units" placeholder="kg/ชิ้น"></div>
+        <div style="flex:1"><label>หน่วย</label><input type="text" id="ex-unit" placeholder="ถุง/แพ็ค"></div>
       </div>
       <label>ราคาต่อหน่วย</label>
       <input type="number" id="ex-ppu" oninput="calcExTotal()" placeholder="0">
-      <div style="margin:10px 5px; font-weight:700">รวมจ่าย: <span id="ex-total-label" style="color:var(--primary)">0</span> บาท</div>
-      <div style="display:flex; gap:10px">
-        <div style="flex:1"><label>หมวดหมู่</label><input type="text" id="ex-cat" list="list-cats" placeholder="วัตถุดิบ"></div>
-        <div style="flex:1"><label>ร้านค้า</label><input type="text" id="ex-vendor" list="list-vendors" placeholder="แม็คโคร"></div>
-      </div>
+      <div style="margin:10px 5px; font-weight:700">รวม: <span id="ex-total-label" style="color:var(--primary)">0</span> บาท</div>
       <button class="btn-save" onclick="saveExpense()">บันทึกรายจ่าย</button>
     </div>
-    <div class="sec">ประวัติรายจ่ายล่าสุด</div>
+    <div class="sec">ประวัติ 10 รายการล่าสุด</div>
     <div id="ex-history" class="card-list"></div>
   </div>
 
   <div id="page-profit" class="page">
-    <div class="hero">
-      <div style="color:var(--dim);font-size:12px">กำไรสุทธิ</div>
-      <div class="hero-val" id="pf-total" style="color:var(--success)">฿0</div>
-    </div>
+    <div class="hero"><div style="color:var(--dim);font-size:12px">กำไรสุทธิ</div><div class="hero-val" id="pf-total" style="color:var(--success)">฿0</div></div>
     <div class="card-list" style="padding:20px">
-      <div style="display:flex; justify-content:space-between; margin-bottom:15px">
-        <span style="color:var(--dim)">รายได้รวม</span><span id="pf-income" style="color:var(--success); font-weight:700">+0</span>
-      </div>
-      <div style="display:flex; justify-content:space-between">
-        <span style="color:var(--dim)">รายจ่ายรวม</span><span id="pf-expense" style="color:var(--danger); font-weight:700">-0</span>
-      </div>
-    </div>
-    <button onclick="downloadCSV()" style="width:100%; background:none; border:1px solid var(--border); color:var(--dim); border-radius:14px; padding:15px; margin-top:24px">📂 ดาวน์โหลด Backup (.CSV)</button>
-  </div>
-
-  <div id="page-peak" class="page">
-    <div class="sec">⏰ ช่วงเวลาขายดี</div>
-    <div class="hero" style="height:300px; padding:20px; background:var(--surface)">
-      <canvas id="peak-chart"></canvas>
+      <div style="display:flex; justify-content:space-between; margin-bottom:15px"><span>รายได้รวม</span><span id="pf-income" style="color:var(--success)">+0</span></div>
+      <div style="display:flex; justify-content:space-between"><span>รายจ่ายรวม</span><span id="pf-expense" style="color:var(--danger)">-0</span></div>
     </div>
   </div>
 </div>
-  <script>
+<script>
 const SB_URL = "https://uhruejkycwcxjhcokbfm.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
-let allOrders = [], allExpenses = [], peakChart = null;
+let allOrders = [], allExpenses = [];
 
 async function init() {
   document.getElementById('loader').style.display = 'flex';
@@ -146,43 +101,41 @@ async function init() {
     allOrders = oRes.data || [];
     allExpenses = eRes.data || [];
     renderAll();
-  } catch (e) { console.error(e); }
+  } catch (e) { console.error("Init Error:", e); }
   document.getElementById('loader').style.display = 'none';
 }
 
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
+  const target = document.getElementById('page-'+id);
+  if(target) target.classList.add('active');
   btn.classList.add('active');
-  if(id === 'peak') renderPeakChart();
 }
 
 function renderAll() {
   const income = allOrders.reduce((s,r) => s + (Number(r.actual_amount) || 0), 0);
   const expense = allExpenses.reduce((s,r) => s + (Number(r.amount) || 0), 0);
   
+  // Update Header & Profit
   document.getElementById('ov-rev').innerText = '฿' + income.toLocaleString();
-  document.getElementById('ov-cnt').innerText = allOrders.length + ' ออเดอร์';
   document.getElementById('pf-income').innerText = '+' + income.toLocaleString();
   document.getElementById('pf-expense').innerText = '-' + expense.toLocaleString();
   document.getElementById('pf-total').innerText = '฿' + (income - expense).toLocaleString();
 
   renderPlatform();
   renderTopMenu();
-  renderHeatmap();
   renderToday();
   renderExpenseHistory();
-  updateDatalists();
 }
 
 function renderPlatform() {
   const rev = {pos:0, grab:0, lineman:0, shopee:0};
   const colors = {pos:'#fff', grab:'#00B14F', lineman:'#00A84F', shopee:'#EE4D2D'};
-  allOrders.forEach(o => { const ch = (o.channel||'pos').toLowerCase(); rev[ch] += (Number(o.actual_amount)||0); });
+  allOrders.forEach(o => { const ch = (o.channel||'pos').toLowerCase(); if(rev.hasOwnProperty(ch)) rev[ch] += (Number(o.actual_amount)||0); });
   const max = Math.max(...Object.values(rev), 1);
   
-  document.getElementById('ov-platform').innerHTML = ['pos','grab','lineman','shopee'].map(k => `
+  document.getElementById('ov-platform').innerHTML = Object.keys(rev).map(k => `
     <div class="list-item">
       <span style="font-weight:700; width:60px; color:${colors[k]}">${k.toUpperCase()}</span>
       <div class="pbar-w"><div class="pbar" style="width:${(rev[k]/max)*100}%; background:${colors[k]}"></div></div>
@@ -194,16 +147,13 @@ function renderTopMenu() {
   const counts = {};
   allOrders.forEach(o => {
     try {
-      let items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
-      items?.forEach(i => { counts[i.name] = (counts[i.name]||0) + (i.qty||1); });
+      let items = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []);
+      items.forEach(i => { counts[i.name] = (counts[i.name]||0) + (Number(i.qty)||1); });
     } catch(e) {}
   });
   const top = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 10);
   document.getElementById('ov-menu').innerHTML = top.map(([n,q], i) => `
-    <div class="list-item">
-      <span style="font-size:13px">${i+1}. ${n}</span>
-      <span style="color:var(--primary); font-weight:800">${q} ชิ้น</span>
-    </div>`).join('');
+    <div class="list-item"><span>${i+1}. ${n}</span><span style="color:var(--primary); font-weight:800">${q}</span></div>`).join('');
 }
 
 function renderToday() {
@@ -211,103 +161,46 @@ function renderToday() {
   const filtered = allOrders.filter(o => String(o.created_at).startsWith(today));
   document.getElementById('td-rev').innerText = '฿' + filtered.reduce((s,r)=>s+(Number(r.actual_amount)||0), 0).toLocaleString();
   
-  document.getElementById('td-list').innerHTML = filtered.map(o => {
-    let items = [];
-    try { items = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch(e) {}
-    const itemStr = items.map(i => `${i.name} (x${i.qty}) ${i.selectedModifier?.name || ''}`).join(', ');
-    // แก้ไขจุดพัง: แปลง o.id เป็น String ก่อน slice
-    const displayId = String(o.id).length > 4 ? String(o.id).slice(-4) : String(o.id);
-    return `<div class="list-item" style="flex-direction:column; align-items:flex-start">
-      <div style="display:flex; justify-content:space-between; width:100%">
-        <span style="font-size:10px; color:var(--dim)">#${displayId}</span>
-        <span style="color:var(--success); font-weight:700">฿${o.actual_amount}</span>
-      </div>
-      <div style="font-size:13px; margin-top:4px">${itemStr}</div>
+  document.getElementById('td-list').innerHTML = filtered.slice(0, 20).map(o => {
+    // แก้ BUG o.id.slice: แปลงเป็น String ก่อนเสมอ
+    const displayId = String(o.id).slice(-4);
+    return `<div class="list-item">
+      <span style="font-size:12px; color:var(--dim)">#${displayId}</span>
+      <span style="font-size:14px; flex:1; margin-left:10px">${o.channel || 'POS'}</span>
+      <span style="color:var(--success); font-weight:700">฿${Number(o.actual_amount).toLocaleString()}</span>
     </div>`;
   }).join('') || '<div style="padding:40px; text-align:center; color:var(--dim)">ไม่มีรายการวันนี้</div>';
 }
 
 function calcExTotal() {
-  const q = document.getElementById('ex-qty').value || 0;
-  const p = document.getElementById('ex-ppu').value || 0;
+  const q = Number(document.getElementById('ex-qty').value) || 0;
+  const p = Number(document.getElementById('ex-ppu').value) || 0;
   document.getElementById('ex-total-label').innerText = (q * p).toLocaleString();
 }
 
 async function saveExpense() {
-  const amt = document.getElementById('ex-qty').value * document.getElementById('ex-ppu').value;
+  const amt = Number(document.getElementById('ex-qty').value) * Number(document.getElementById('ex-ppu').value);
+  if(!document.getElementById('ex-item').value || amt <= 0) return alert('กรุณาระบุรายการและราคา');
+  
   const payload = {
     item: document.getElementById('ex-item').value,
     quantity: Number(document.getElementById('ex-qty').value),
     price_per_unit: Number(document.getElementById('ex-ppu').value),
     amount: amt,
     unit: document.getElementById('ex-unit').value,
-    category: document.getElementById('ex-cat').value,
-    vendor: document.getElementById('ex-vendor').value,
     date: new Date().toISOString().split('T')[0]
   };
-  if(!payload.item || !payload.amount) return alert('กรุณากรอกข้อมูลให้ครบ');
+  
   const { error } = await sb.from('expenses').insert([payload]);
-  if(!error) { alert('บันทึกเรียบร้อย'); init(); }
-  else { alert('เกิดข้อผิดพลาด: ' + error.message); }
+  if(!error) { alert('บันทึกสำเร็จ'); init(); } else { alert('Error: ' + error.message); }
 }
 
 function renderExpenseHistory() {
   document.getElementById('ex-history').innerHTML = allExpenses.slice(0, 10).map(e => `
     <div class="list-item">
-      <div><div style="font-size:14px; font-weight:600">${e.item}</div><div style="font-size:10px; color:var(--dim)">${e.vendor} | ${e.date}</div></div>
-      <div style="text-align:right; color:var(--danger); font-weight:700">-฿${Number(e.amount).toLocaleString()}</div>
-    </div>`).join('');
-}
-
-function updateDatalists() {
-  const fill = (id, key) => {
-    const vals = [...new Set(allExpenses.map(e => e[key]).filter(Boolean))];
-    document.getElementById(id).innerHTML = vals.map(v => `<option value="${v}">`).join('');
-  };
-  fill('list-items', 'item'); fill('list-cats', 'category'); fill('list-vendors', 'vendor'); fill('list-units', 'unit');
-}
-
-function renderHeatmap() {
-  const daily = {};
-  allOrders.forEach(o => { const d = String(o.created_at).split('T')[0]; daily[d] = (daily[d]||0) + (Number(o.actual_amount)||0); });
-  const max = Math.max(...Object.values(daily), 1);
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  let html = '';
-  for(let i=1; i<=daysInMonth; i++) {
-    const d = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const v = daily[d] || 0;
-    const p = v / max;
-    const bg = v === 0 ? '#1a1a1a' : (p > 0.7 ? '#FF9F0A' : (p > 0.4 ? 'rgba(255,159,10,0.6)' : 'rgba(255,159,10,0.2)'));
-    html += `<div class="hmcell" style="background:${bg}; color:${p > 0.5 ? '#000' : '#555'}">${i}</div>`;
-  }
-  document.getElementById('heatmap').innerHTML = html;
-}
-
-function renderPeakChart() {
-  if(peakChart) peakChart.destroy();
-  const hours = Array(24).fill(0);
-  allOrders.forEach(o => { hours[new Date(o.created_at).getHours()]++; });
-  const ctx = document.getElementById('peak-chart').getContext('2d');
-  peakChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: Array.from({length:24}, (_,i) => i+':00'),
-      datasets: [{ data: hours, backgroundColor: '#FF9F0A', borderRadius: 6 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-      scales: { x: { grid: { display: false }, ticks: { color: '#555', font: { size: 9 } } }, y: { display: false } }
-    }
-  });
-}
-
-function downloadCSV() {
-  let csv = "Type,Date,Description,Amount\n";
-  allOrders.forEach(o => csv += `Income,${String(o.created_at).split('T')[0]},Sales,${o.actual_amount}\n`);
-  allExpenses.forEach(e => csv += `Expense,${e.date},${e.item},${e.amount}\n`);
-  const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `Report.csv`; a.click();
+      <div><div style="font-size:14px; font-weight:600">${e.item}</div><div style="font-size:10px; color:var(--dim)">${e.date}</div></div>
+      <div style="color:var(--danger); font-weight:700">-฿${Number(e.amount).toLocaleString()}</div>
+    </div>`).join('') || '<div style="padding:20px; text-align:center; color:var(--dim)">ยังไม่มีรายจ่าย</div>';
 }
 
 init();
