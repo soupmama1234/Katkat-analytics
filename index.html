@@ -18,33 +18,27 @@
     body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans Thai',sans-serif; margin:0; padding:env(safe-area-inset-top) 0 100px; user-select:none; }
     .wrap { max-width:500px; margin:0 auto; padding:20px; }
     
-    /* Navigation Bar */
     .nav { display:flex; background:var(--surface); border-radius:16px; padding:4px; margin-bottom:24px; gap:4px; border:1px solid var(--border); position:sticky; top:10px; z-index:100; }
-    .nav-btn { flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:11px; font-weight:600; padding:10px 2px; border-radius:12px; cursor:pointer; transition:all 0.2s; }
+    .nav-btn { flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:11px; font-weight:600; padding:10px 2px; border-radius:12px; cursor:pointer; }
     .nav-btn.active { background:var(--primary); color:#000; }
 
-    /* UI Components */
     .hero { background:linear-gradient(145deg,#1a1a1a,#0a0a0a); border:1px solid var(--border); border-radius:28px; padding:28px 24px; margin-bottom:16px; text-align:center; }
     .hero-val { font-family:'Inter',sans-serif; font-size:44px; font-weight:800; color:var(--primary); margin:8px 0; letter-spacing:-1px; }
     .sec { font-size:15px; font-weight:700; color:var(--dim); margin:22px 0 12px; }
     .page { display:none; }
     .page.active { display:block; }
     
-    /* Expense Form Style */
-    input, select { width:100%; background:#1c1c1e; border:1px solid var(--border); border-radius:14px; padding:14px; color:#fff; font-size:16px; font-family:inherit; margin-bottom:12px; }
+    input { width:100%; background:#1c1c1e; border:1px solid var(--border); border-radius:14px; padding:14px; color:#fff; font-size:16px; font-family:inherit; margin-bottom:12px; }
     label { display:block; font-size:12px; color:var(--dim); margin-bottom:6px; margin-left:4px; }
-    .btn-save { width:100%; background:var(--primary); color:#000; border:none; border-radius:16px; padding:18px; font-weight:700; font-size:16px; margin-top:10px; box-shadow:0 4px 15px rgba(255,159,10,0.2); }
+    .btn-save { width:100%; background:var(--primary); color:#000; border:none; border-radius:16px; padding:18px; font-weight:700; font-size:16px; margin-top:10px; }
     
-    /* Lists & Tables */
     .card-list { background:var(--surface); border:1px solid var(--border); border-radius:24px; overflow:hidden; }
     .list-item { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); }
     .list-item:last-child { border-bottom:none; }
     
-    /* Platform Bar */
     .pbar-w { flex:1; height:5px; background:#1a1a1a; border-radius:3px; margin:0 12px; }
     .pbar { height:100%; border-radius:3px; transition:width 0.6s ease; }
 
-    /* Heatmap Grid */
     .hmgrid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
     .hmcell { aspect-ratio:1; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; font-family:'Inter',sans-serif; font-weight:600; }
 
@@ -102,14 +96,13 @@
       <label>ราคาต่อหน่วย</label>
       <input type="number" id="ex-ppu" oninput="calcExTotal()" placeholder="0">
       <div style="margin:10px 5px; font-weight:700">รวมจ่าย: <span id="ex-total-label" style="color:var(--primary)">0</span> บาท</div>
-      <label>หมวดหมู่ / ร้านค้า</label>
       <div style="display:flex; gap:10px">
-        <input type="text" id="ex-cat" list="list-cats" placeholder="วัตถุดิบ">
-        <input type="text" id="ex-vendor" list="list-vendors" placeholder="แม็คโคร">
+        <div style="flex:1"><label>หมวดหมู่</label><input type="text" id="ex-cat" list="list-cats" placeholder="วัตถุดิบ"></div>
+        <div style="flex:1"><label>ร้านค้า</label><input type="text" id="ex-vendor" list="list-vendors" placeholder="แม็คโคร"></div>
       </div>
       <button class="btn-save" onclick="saveExpense()">บันทึกรายจ่าย</button>
     </div>
-    <div class="sec">ประวัติ 10 รายการล่าสุด</div>
+    <div class="sec">ประวัติรายจ่ายล่าสุด</div>
     <div id="ex-history" class="card-list"></div>
   </div>
 
@@ -126,7 +119,7 @@
         <span style="color:var(--dim)">รายจ่ายรวม</span><span id="pf-expense" style="color:var(--danger); font-weight:700">-0</span>
       </div>
     </div>
-    <button onclick="downloadCSV()" style="width:100%; background:none; border:1px solid var(--border); color:var(--dim); border-radius:14px; padding:15px; margin-top:24px; font-size:14px">📂 ดาวน์โหลด Backup (.CSV)</button>
+    <button onclick="downloadCSV()" style="width:100%; background:none; border:1px solid var(--border); color:var(--dim); border-radius:14px; padding:15px; margin-top:24px">📂 ดาวน์โหลด Backup (.CSV)</button>
   </div>
 
   <div id="page-peak" class="page">
@@ -145,13 +138,15 @@ let allOrders = [], allExpenses = [], peakChart = null;
 
 async function init() {
   document.getElementById('loader').style.display = 'flex';
-  const [oRes, eRes] = await Promise.all([
-    sb.from('orders').select('*').order('created_at', {ascending:false}),
-    sb.from('expenses').select('*').order('date', {ascending:false})
-  ]);
-  allOrders = oRes.data || [];
-  allExpenses = eRes.data || [];
-  renderAll();
+  try {
+    const [oRes, eRes] = await Promise.all([
+      sb.from('orders').select('*').order('created_at', {ascending:false}),
+      sb.from('expenses').select('*').order('date', {ascending:false})
+    ]);
+    allOrders = oRes.data || [];
+    allExpenses = eRes.data || [];
+    renderAll();
+  } catch (e) { console.error(e); }
   document.getElementById('loader').style.display = 'none';
 }
 
@@ -164,8 +159,8 @@ function showPage(id, btn) {
 }
 
 function renderAll() {
-  const income = allOrders.reduce((s,r) => s + (r.actual_amount || 0), 0);
-  const expense = allExpenses.reduce((s,r) => s + (r.amount || 0), 0);
+  const income = allOrders.reduce((s,r) => s + (Number(r.actual_amount) || 0), 0);
+  const expense = allExpenses.reduce((s,r) => s + (Number(r.amount) || 0), 0);
   
   document.getElementById('ov-rev').innerText = '฿' + income.toLocaleString();
   document.getElementById('ov-cnt').innerText = allOrders.length + ' ออเดอร์';
@@ -184,7 +179,7 @@ function renderAll() {
 function renderPlatform() {
   const rev = {pos:0, grab:0, lineman:0, shopee:0};
   const colors = {pos:'#fff', grab:'#00B14F', lineman:'#00A84F', shopee:'#EE4D2D'};
-  allOrders.forEach(o => { const ch = (o.channel||'pos').toLowerCase(); rev[ch] += (o.actual_amount||0); });
+  allOrders.forEach(o => { const ch = (o.channel||'pos').toLowerCase(); rev[ch] += (Number(o.actual_amount)||0); });
   const max = Math.max(...Object.values(rev), 1);
   
   document.getElementById('ov-platform').innerHTML = ['pos','grab','lineman','shopee'].map(k => `
@@ -198,8 +193,10 @@ function renderPlatform() {
 function renderTopMenu() {
   const counts = {};
   allOrders.forEach(o => {
-    let items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
-    items?.forEach(i => { counts[i.name] = (counts[i.name]||0) + (i.qty||1); });
+    try {
+      let items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+      items?.forEach(i => { counts[i.name] = (counts[i.name]||0) + (i.qty||1); });
+    } catch(e) {}
   });
   const top = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 10);
   document.getElementById('ov-menu').innerHTML = top.map(([n,q], i) => `
@@ -211,20 +208,23 @@ function renderTopMenu() {
 
 function renderToday() {
   const today = new Date().toLocaleDateString('en-CA');
-  const filtered = allOrders.filter(o => o.created_at.startsWith(today));
-  document.getElementById('td-rev').innerText = '฿' + filtered.reduce((s,r)=>s+r.actual_amount, 0).toLocaleString();
+  const filtered = allOrders.filter(o => String(o.created_at).startsWith(today));
+  document.getElementById('td-rev').innerText = '฿' + filtered.reduce((s,r)=>s+(Number(r.actual_amount)||0), 0).toLocaleString();
   
   document.getElementById('td-list').innerHTML = filtered.map(o => {
-    let items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
-    const itemStr = items?.map(i => `${i.name} (x${i.qty}) ${i.selectedModifier?.name || ''}`).join(', ');
+    let items = [];
+    try { items = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch(e) {}
+    const itemStr = items.map(i => `${i.name} (x${i.qty}) ${i.selectedModifier?.name || ''}`).join(', ');
+    // แก้ไขจุดพัง: แปลง o.id เป็น String ก่อน slice
+    const displayId = String(o.id).length > 4 ? String(o.id).slice(-4) : String(o.id);
     return `<div class="list-item" style="flex-direction:column; align-items:flex-start">
       <div style="display:flex; justify-content:space-between; width:100%">
-        <span style="font-size:10px; color:var(--dim)">#${o.id.slice(-4)}</span>
+        <span style="font-size:10px; color:var(--dim)">#${displayId}</span>
         <span style="color:var(--success); font-weight:700">฿${o.actual_amount}</span>
       </div>
       <div style="font-size:13px; margin-top:4px">${itemStr}</div>
     </div>`;
-  }).join('') || '<div style="padding:40px; text-align:center; color:var(--dim)">ไม่มีรายการของวันนี้</div>';
+  }).join('') || '<div style="padding:40px; text-align:center; color:var(--dim)">ไม่มีรายการวันนี้</div>';
 }
 
 function calcExTotal() {
@@ -234,11 +234,12 @@ function calcExTotal() {
 }
 
 async function saveExpense() {
+  const amt = document.getElementById('ex-qty').value * document.getElementById('ex-ppu').value;
   const payload = {
     item: document.getElementById('ex-item').value,
-    quantity: document.getElementById('ex-qty').value,
-    price_per_unit: document.getElementById('ex-ppu').value,
-    amount: document.getElementById('ex-qty').value * document.getElementById('ex-ppu').value,
+    quantity: Number(document.getElementById('ex-qty').value),
+    price_per_unit: Number(document.getElementById('ex-ppu').value),
+    amount: amt,
     unit: document.getElementById('ex-unit').value,
     category: document.getElementById('ex-cat').value,
     vendor: document.getElementById('ex-vendor').value,
@@ -247,13 +248,14 @@ async function saveExpense() {
   if(!payload.item || !payload.amount) return alert('กรุณากรอกข้อมูลให้ครบ');
   const { error } = await sb.from('expenses').insert([payload]);
   if(!error) { alert('บันทึกเรียบร้อย'); init(); }
+  else { alert('เกิดข้อผิดพลาด: ' + error.message); }
 }
 
 function renderExpenseHistory() {
   document.getElementById('ex-history').innerHTML = allExpenses.slice(0, 10).map(e => `
     <div class="list-item">
       <div><div style="font-size:14px; font-weight:600">${e.item}</div><div style="font-size:10px; color:var(--dim)">${e.vendor} | ${e.date}</div></div>
-      <div style="text-align:right; color:var(--danger); font-weight:700">-฿${e.amount.toLocaleString()}</div>
+      <div style="text-align:right; color:var(--danger); font-weight:700">-฿${Number(e.amount).toLocaleString()}</div>
     </div>`).join('');
 }
 
@@ -267,11 +269,10 @@ function updateDatalists() {
 
 function renderHeatmap() {
   const daily = {};
-  allOrders.forEach(o => { const d = o.created_at.split('T')[0]; daily[d] = (daily[d]||0) + o.actual_amount; });
+  allOrders.forEach(o => { const d = String(o.created_at).split('T')[0]; daily[d] = (daily[d]||0) + (Number(o.actual_amount)||0); });
   const max = Math.max(...Object.values(daily), 1);
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  
   let html = '';
   for(let i=1; i<=daysInMonth; i++) {
     const d = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
@@ -302,12 +303,11 @@ function renderPeakChart() {
 
 function downloadCSV() {
   let csv = "Type,Date,Description,Amount\n";
-  allOrders.forEach(o => csv += `Income,${o.created_at.split('T')[0]},Sales,${o.actual_amount}\n`);
+  allOrders.forEach(o => csv += `Income,${String(o.created_at).split('T')[0]},Sales,${o.actual_amount}\n`);
   allExpenses.forEach(e => csv += `Expense,${e.date},${e.item},${e.amount}\n`);
   const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `KATKAT_Report.csv`; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = `Report.csv`; a.click();
 }
 
 init();
