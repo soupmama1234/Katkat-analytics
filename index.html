@@ -3,265 +3,240 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>KATKAT Analytics</title>
+<title>KATKAT Analytics Mobile</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--border:#222;
-  --text:#f0f0f0;--muted:#555;--muted2:#888;
-  --orange:#f5a623;--green:#4caf50;--blue:#2196f3;--red:#ef5350;
+:root {
+  --bg: #000000;
+  --card-bg: #121212;
+  --border: #282828;
+  --primary: #FF9F0A; /* สีส้มสไตล์ iOS Apple */
+  --text-main: #FFFFFF;
+  --text-sub: #8E8E93;
+  --green: #32D74B;
 }
-html,body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;min-height:100vh; overflow-x: hidden;}
-button{font-family:inherit;cursor:pointer}
-input[type=file]{display:none}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--bg2)}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
-/* Layout */
-#app{max-width:800px;margin:0 auto;padding-bottom:80px}
-.header{padding:20px 16px 0;display:flex;justify-content:space-between;align-items:flex-start}
-.header-left .eyebrow{font-size:11px;color:var(--orange);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}
-.header-left h1{font-size:22px;font-weight:700}
-.header-left .sub{font-size:11px;color:#444;margin-top:2px}
-.header-right{display:flex;gap:8px}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { 
+  background: var(--bg); 
+  color: var(--text-main); 
+  font-family: 'IBM Plex Sans Thai', sans-serif; 
+  margin: 0; 
+  padding: 0;
+  line-height: 1.5;
+}
 
-/* Button Fixes */
-.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted2);padding:8px 12px;border-radius:8px;font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
-.upload-label { position: relative; overflow: hidden; cursor: pointer; }
-.upload-label input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+/* Container */
+.container { max-width: 500px; margin: 0 auto; padding: 20px 16px 100px; }
 
-/* Tabs */
-.tabs{display:flex;padding:16px 16px 0;overflow-x:auto;gap:0;border-bottom:1px solid var(--bg3);margin-top:4px}
-.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:8px 14px;font-size:13px;font-family:inherit;white-space:nowrap;transition:all 0.2s}
-.tab.active{border-bottom-color:var(--orange);color:var(--orange);font-weight:600}
+/* Header */
+.header { margin-bottom: 24px; padding-top: 10px; }
+.header h1 { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
+.header p { color: var(--text-sub); margin: 4px 0 0; font-size: 14px; }
 
-/* Cards */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
-.section-pad{padding:16px}
-.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
-.stat-label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.stat-value{font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1.2}
-.stat-sub{font-size:12px;color:#555;margin-top:4px}
-.section-title{font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.stat-card { 
+  background: var(--card-bg); 
+  padding: 20px 16px; 
+  border-radius: 16px; 
+  border: 1px solid var(--border);
+}
+.stat-label { color: var(--text-sub); font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+.stat-value { 
+  font-family: 'Inter', sans-serif; 
+  font-size: 22px; 
+  font-weight: 700; 
+  color: var(--primary); 
+}
 
-/* Table & Charts */
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:8px 0;color:#555;font-weight:500;border-bottom:1px solid var(--border)}
-th.r,td.r{text-align:right}
-td{padding:10px 0;border-bottom:1px solid var(--bg3);color:#aaa}
-.chart-wrap{position:relative;margin-top:8px}
+/* Large Graph Card */
+.chart-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.chart-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.chart-container { height: 220px; position: relative; }
 
-/* Empty / loading */
-#empty{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center}
-.btn-primary{background:var(--orange);color:#000;border:none;padding:14px 20px;border-radius:10px;font-size:14px;font-weight:700;width:100%;max-width:320px}
-.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:14px 20px;border-radius:10px;font-size:14px;font-weight:600;width:100%;max-width:320px;display:flex;align-items:center;justify-content:center;gap:8px; cursor:pointer;}
+/* Table Section */
+.list-card { background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border); overflow: hidden; }
+.list-item { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 16px 20px; 
+  border-bottom: 1px solid var(--border);
+}
+.list-item:last-child { border-bottom: none; }
+.list-date { font-weight: 500; font-size: 15px; }
+.list-price { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--green); }
+
+/* Loading State */
+#loading-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.spinner {
+  width: 40px; height: 40px; border: 4px solid var(--border);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Utility */
+.refresh-btn {
+  position: fixed; bottom: 30px; right: 20px;
+  background: var(--primary); color: black;
+  width: 56px; height: 56px; border-radius: 28px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 15px rgba(255,159,10,0.4);
+  border: none; font-size: 24px; z-index: 90;
+}
 </style>
 </head>
 <body>
 
-<div id="empty">
-  <div style="font-size:48px">📊</div>
-  <div style="font-size:20px; font-weight:700; color:var(--orange)">KATKAT Analytics</div>
-  <div id="empty-sub" style="font-size:13px; color:#555; max-width:300px; line-height:1.6">เลือกแหล่งข้อมูลเพื่อเริ่มต้น</div>
-  <div style="display:flex;flex-direction:column;gap:12px;width:100%;align-items:center" id="empty-btns">
-    <button class="btn-primary" id="btn-supabase" style="display:none" onclick="loadSupabase()">⚡ ดึงข้อมูลจาก Supabase</button>
-    <label class="btn-secondary upload-label">
-      📂 Upload CSV Backup
-      <input type="file" accept=".csv" onchange="loadCSV(event)">
-    </label>
-  </div>
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p style="margin-top:16px; color:var(--text-sub)">KATKAT กำลังสรุปยอด...</p>
 </div>
 
-<div id="app" style="display:none">
-  <div class="header">
-    <div class="header-left">
-      <div class="eyebrow">KAT KAT KATSU</div>
-      <h1>Analytics</h1>
-      <div class="sub" id="data-source-label"></div>
+<div class="container">
+  <header class="header">
+    <h1>Analytics</h1>
+    <p id="date-range">ข้อมูลสรุปย้อนหลัง 30 วัน</p>
+  </header>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">ยอดขายทั้งหมด</div>
+      <div class="stat-value" id="total-revenue">฿0</div>
     </div>
-    <div class="header-right">
-      <button class="icon-btn" id="btn-refresh" onclick="loadSupabase()" style="display:none">🔄</button>
-      <label class="icon-btn upload-label">
-        📂
-        <input type="file" accept=".csv" onchange="loadCSV(event)">
-      </label>
+    <div class="stat-card">
+      <div class="stat-label">จำนวนบิล</div>
+      <div class="stat-value" id="total-orders">0</div>
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('overview')">ภาพรวม</button>
-    <button class="tab" onclick="switchTab('daily')">รายวัน</button>
-    <button class="tab" onclick="switchTab('menu')">เมนู</button>
-    <button class="tab" onclick="switchTab('channel')">ช่องทาง</button>
-  </div>
-
-  <div id="tab-overview" class="tab-content">
-    <div class="grid-2" style="margin-top:16px">
-      <div class="stat-card" style="border-top:3px solid var(--orange)">
-        <div class="stat-label">ยอดรับจริงรวม</div>
-        <div class="stat-value" id="s-revenue">฿0</div>
-      </div>
-      <div class="stat-card" style="border-top:3px solid var(--orange)">
-        <div class="stat-label">จำนวนบิล</div>
-        <div class="stat-value" id="s-count">0</div>
-      </div>
+  <div class="chart-card">
+    <div class="chart-title">
+      <span>แนวโน้มยอดขาย</span>
+      <span style="font-size:12px; color:var(--text-sub)">7 วันล่าสุด</span>
     </div>
-    <div class="section-pad">
-        <div class="card">
-            <div class="section-title">ยอดขาย 30 วันล่าสุด</div>
-            <div class="chart-wrap"><canvas id="chart-trend" height="140"></canvas></div>
-        </div>
-    </div>
-  </div>
-  
-  <div id="tab-daily" class="tab-content" style="display:none">
-    <div class="section-pad">
-      <div class="card">
-        <div class="section-title">ตารางสรุปรายวัน</div>
-        <table>
-          <thead><tr><th>วันที่</th><th class="r">ออเดอร์</th><th class="r">ยอดรับ</th></tr></thead>
-          <tbody id="daily-table"></tbody>
-        </table>
-      </div>
+    <div class="chart-container">
+      <canvas id="mainChart"></canvas>
     </div>
   </div>
 
-  <div id="tab-menu" class="tab-content" style="display:none; padding:16px;">
-      <div class="card"><div class="section-title">เมนูขายดี</div><div id="menu-list"></div></div>
-  </div>
-  <div id="tab-channel" class="tab-content" style="display:none; padding:16px;">
-      <div class="card"><div class="section-title">สัดส่วนช่องทาง</div><canvas id="chart-pie" height="200"></canvas></div>
-  </div>
-
+  <h2 style="font-size:18px; margin-bottom:16px; padding-left:4px">ประวัติรายวัน</h2>
+  <div class="list-card" id="daily-list">
+    </div>
 </div>
+
+<button class="refresh-btn" onclick="fetchData()">🔄</button>
 
 <script>
-// ── CONFIG (ใส่ของจริงของคุณตรงนี้) ───────────────────
+// ── CONFIG ──────────────────────────────────────────
 const SUPABASE_URL = "https://uhruejkycwcxjhcokbfm.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
 
-// ── STATE ────────────────────────────────────────────
-let allOrders = [];
-let charts = {};
-const fmt = n => (n||0).toLocaleString("th-TH");
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let myChart = null;
 
-// ── INIT ─────────────────────────────────────────────
-window.onload = () => {
-  if (SUPABASE_URL && SUPABASE_KEY && !SUPABASE_URL.includes("xxxx")) {
-    document.getElementById("btn-supabase").style.display = "block";
-    document.getElementById("btn-refresh").style.display = "block";
-  }
-};
-
-// ── LOADERS ──────────────────────────────────────────
-async function loadSupabase() {
-  setLoading("กำลังดึงข้อมูล...");
+async function fetchData() {
+  document.getElementById('loading-overlay').style.display = 'flex';
   try {
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
+    const { data, error } = await sb
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
     if (error) throw error;
-    allOrders = data.map(normalizeRow);
-    showApp("supabase");
-  } catch(e) { setError("Error: " + e.message); }
+    renderDashboard(data);
+  } catch (err) {
+    alert("โหลดข้อมูลไม่สำเร็จ: " + err.message);
+  } finally {
+    document.getElementById('loading-overlay').style.display = 'none';
+  }
 }
 
-function loadCSV(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  setLoading("กำลังอ่านไฟล์ CSV...");
-  const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      const rows = parseCSV(ev.target.result);
-      allOrders = rows.map(normalizeRow);
-      showApp("csv");
-    } catch(err) { setError("ไฟล์ผิดพลาด"); }
-  };
-  reader.readAsText(file, "UTF-8"); // หรือเปลี่ยนเป็น "windows-874" ถ้าภาษาไทยเพี้ยน
+function renderDashboard(data) {
+  const totalRev = data.reduce((sum, row) => sum + (row.actual_amount || 0), 0);
+  document.getElementById('total-revenue').innerText = '฿' + totalRev.toLocaleString();
+  document.getElementById('total-orders').innerText = data.length.toLocaleString();
+
+  // Group by Day
+  const dailyMap = {};
+  data.forEach(row => {
+    const date = new Date(row.created_at).toLocaleDateString('th-TH', { 
+      day: 'numeric', month: 'short' 
+    });
+    dailyMap[date] = (dailyMap[date] || 0) + (row.actual_amount || 0);
+  });
+
+  // Render List
+  const listContainer = document.getElementById('daily-list');
+  listContainer.innerHTML = '';
+  Object.entries(dailyMap).slice(0, 10).forEach(([date, amt]) => {
+    listContainer.innerHTML += `
+      <div class="list-item">
+        <div class="list-date">${date}</div>
+        <div class="list-price">฿${amt.toLocaleString()}</div>
+      </div>
+    `;
+  });
+
+  // Render Chart
+  renderChart(dailyMap);
 }
 
-function parseCSV(text) {
-  const lines = text.trim().split("\n");
-  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g,""));
-  return lines.slice(1).map(line => {
-    const vals = line.split(",").map(v => v.trim().replace(/"/g,""));
-    const obj = {};
-    headers.forEach((h,i) => obj[h] = vals[i]);
-    return obj;
+function renderChart(dailyMap) {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  const labels = Object.keys(dailyMap).reverse().slice(-7);
+  const values = labels.map(l => dailyMap[l]);
+
+  if (myChart) myChart.destroy();
+  
+  myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        borderColor: '#FF9F0A',
+        borderWidth: 4,
+        pointRadius: 0,
+        tension: 0.4,
+        fill: true,
+        backgroundColor: (context) => {
+          const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+          gradient.addColorStop(0, 'rgba(255, 159, 10, 0.2)');
+          gradient.addColorStop(1, 'rgba(255, 159, 10, 0)');
+          return gradient;
+        }
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#8E8E93', font: { size: 11 } } },
+        y: { display: false }
+      }
+    }
   });
 }
 
-function normalizeRow(row) {
-  return {
-    time: row.created_at || row["วันที่/เวลา"] || "",
-    channel: (row.channel || row["ช่องทาง"] || "pos").toLowerCase(),
-    total: Number(row.total || row["ยอดรวมเมนู"] || 0),
-    actual: Number(row.actual_amount || row["ยอดรับจริง"] || 0),
-    items: row.items || row["รายการสินค้า"] || ""
-  };
-}
-
-// ── UI CONTROL ────────────────────────────────────────
-function showApp(source) {
-  document.getElementById("empty").style.display = "none";
-  document.getElementById("app").style.display = "block";
-  document.getElementById("data-source-label").textContent = source.toUpperCase() + " Mode";
-  renderAll();
-}
-
-function setLoading(msg) {
-  document.getElementById("empty-sub").textContent = msg;
-  document.getElementById("empty-btns").style.display = "none";
-}
-
-function setError(msg) {
-  document.getElementById("empty-sub").innerHTML = `<span style="color:red">${msg}</span>`;
-  document.getElementById("empty-btns").style.display = "flex";
-}
-
-function switchTab(id) {
-  document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
-  document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
-  document.getElementById("tab-" + id).style.display = "block";
-  event.target.classList.add("active");
-}
-
-// ── RENDER ────────────────────────────────────────────
-function renderAll() {
-    const totalRevenue = allOrders.reduce((s,o) => s + o.actual, 0);
-    document.getElementById("s-revenue").textContent = "฿" + fmt(totalRevenue);
-    document.getElementById("s-count").textContent = allOrders.length;
-    
-    // Render Trend Chart
-    const byDay = {};
-    allOrders.forEach(o => {
-        const d = o.time.split("T")[0];
-        byDay[d] = (byDay[d]||0) + o.actual;
-    });
-    const days = Object.keys(byDay).sort().slice(-7);
-    const vals = days.map(d => byDay[d]);
-
-    if(charts.trend) charts.trend.destroy();
-    charts.trend = new Chart(document.getElementById("chart-trend"), {
-        type: 'line',
-        data: {
-            labels: days.map(d => d.split("-")[2]),
-            datasets: [{ data: vals, borderColor: '#f5a623', tension: 0.4, fill: false }]
-        },
-        options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
-    });
-
-    // Daily Table
-    const tb = document.getElementById("daily-table");
-    tb.innerHTML = Object.entries(byDay).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,v]) => `
-        <tr><td>${d}</td><td class="r">-</td><td class="r">฿${fmt(v)}</td></tr>
-    `).join("");
-}
+// Start
+fetchData();
 </script>
+
 </body>
 </html>
