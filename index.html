@@ -1,253 +1,276 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>KATKAT Analytics</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>KATKAT Analytics</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@700;800&display=swap" rel="stylesheet">
 
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-capable" content="yes">
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #121212;
+      --border: #222222;
+      --primary: #FF9F0A;
+      --success: #32D74B;
+      --text: #ffffff;
+      --text-dim: #8E8E93;
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans Thai', sans-serif;
+      margin: 0;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      user-select: none;
+    }
 
-<style>
-:root {
-  --bg: #000000;
-  --card-bg: #111111;
-  --border: #222222;
-  --primary: #FF9F0A;
-  --text-main: #FFFFFF;
-  --text-sub: #8E8E93;
-  --green: #32D74B;
-}
+    .app-container {
+      padding: 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    /* Top Header */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    .app-header h1 { font-size: 24px; font-weight: 700; margin: 0; }
+    .status-dot { 
+      width: 8px; height: 8px; background: var(--success); 
+      border-radius: 50%; display: inline-block; margin-right: 6px;
+      box-shadow: 0 0 10px var(--success);
+    }
 
-body { 
-  background: var(--bg); 
-  color: var(--text-main); 
-  font-family: 'IBM Plex Sans Thai', sans-serif; 
-  margin: 0; 
-  padding: 0;
-  /* รองรับรอยบาก (Notch) ของมือถือ */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  overflow-x: hidden;
-}
+    /* Main Summary Card */
+    .hero-card {
+      background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 32px 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .hero-label { color: var(--text-dim); font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+    .hero-value { 
+      font-family: 'Inter', sans-serif; 
+      font-size: 48px; 
+      font-weight: 800; 
+      color: var(--primary);
+      margin: 12px 0;
+      letter-spacing: -1px;
+    }
+    .hero-sub { color: var(--text-dim); font-size: 15px; }
 
-.app-wrapper {
-  min-height: 100vh;
-  padding: 20px 20px 120px;
-}
+    /* Secondary Stats */
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+    .small-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+    }
+    .small-label { color: var(--text-dim); font-size: 13px; margin-bottom: 8px; }
+    .small-value { font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; }
 
-/* Header */
-.header { margin-bottom: 30px; }
-.header h1 { font-size: 32px; font-weight: 800; margin: 0; color: var(--text-main); }
-.header p { color: var(--text-sub); font-size: 16px; margin-top: 5px; }
+    /* Chart Section */
+    .section-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--text-dim); }
+    .chart-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 20px;
+      height: 260px;
+      margin-bottom: 32px;
+    }
 
-/* Stats - เน้นตัวใหญ่ๆ */
-.stats-container { display: flex; gap: 15px; margin-bottom: 25px; }
-.stat-box {
-  flex: 1;
-  background: var(--card-bg);
-  padding: 24px 15px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-}
-.stat-label { font-size: 14px; color: var(--text-sub); margin-bottom: 10px; font-weight: 500; }
-.stat-value { font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 800; color: var(--primary); }
+    /* Daily List */
+    .list-container { background: var(--surface); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; }
+    .list-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+    }
+    .list-item:last-child { border-bottom: none; }
+    .item-date { font-weight: 500; font-size: 16px; }
+    .item-val { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--success); }
 
-/* Chart Area */
-.main-card {
-  background: var(--card-bg);
-  border-radius: 24px;
-  padding: 24px;
-  border: 1px solid var(--border);
-  margin-bottom: 30px;
-}
-.card-header { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--text-main); }
-.chart-box { height: 250px; width: 100%; }
+    /* Floating Action Button */
+    .fab {
+      position: fixed; bottom: 40px; right: 24px;
+      width: 60px; height: 60px; background: var(--primary);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 20px rgba(255,159,10,0.3); border: none; z-index: 100;
+    }
 
-/* List รายวัน - อ่านง่ายขึ้น */
-.history-section h2 { font-size: 20px; font-weight: 700; margin-bottom: 15px; padding-left: 5px; }
-.history-list { background: var(--card-bg); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; }
-.history-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid var(--border);
-}
-.history-item:last-child { border-bottom: none; }
-.date-label { font-size: 17px; font-weight: 500; }
-.amount-label { font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; color: var(--green); }
-
-/* ปุ่ม Refresh ใหญ่ๆ แบบลอย */
-.fab-refresh {
-  position: fixed;
-  bottom: 40px;
-  right: 25px;
-  width: 65px;
-  height: 65px;
-  background: var(--primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  border: none;
-  box-shadow: 0 8px 25px rgba(255,159,10,0.4);
-  z-index: 100;
-}
-
-/* Loading */
-#loader {
-  position: fixed; inset: 0; background: #000;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  z-index: 999;
-}
-.loader-spin {
-  width: 50px; height: 50px;
-  border: 5px solid #222; border-top: 5px solid var(--primary);
-  border-radius: 50%; animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
+    /* Loading Overlay */
+    #loader {
+      position: fixed; inset: 0; background: #000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 1000; transition: opacity 0.4s;
+    }
+    .spinner { width: 40px; height: 40px; border: 4px solid #222; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
 
-<div id="loader">
-  <div class="loader-spin"></div>
-  <p style="margin-top:20px; color:var(--text-sub); font-weight: 500;">สรุปข้อมูลล่าสุด...</p>
-</div>
-
-<div class="app-wrapper">
-  <header class="header">
-    <h1>Analytics</h1>
-    <p>สรุปยอด KAT KAT KATSU</p>
-  </header>
-
-  <div class="stats-container">
-    <div class="stat-box">
-      <div class="stat-label">ยอดรับจริง</div>
-      <div class="stat-value" id="rev-total">฿0</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">จำนวนบิล</div>
-      <div class="stat-value" id="order-count">0</div>
-    </div>
+  <div id="loader">
+    <div class="spinner"></div>
+    <p style="margin-top:20px; color: var(--text-dim);">KATKAT ANALYTICS</p>
   </div>
 
-  <div class="main-card">
-    <div class="card-header">กราฟยอดขาย 7 วัน</div>
-    <div class="chart-box">
+  <div class="app-container">
+    <header class="app-header">
+      <h1>KATKAT สรุปยอด</h1>
+      <div><span class="status-dot"></span><span style="font-size:12px; color:var(--text-dim)">LIVE</span></div>
+    </header>
+
+    <div class="hero-card">
+      <div class="hero-label">ยอดขายรับจริงทั้งหมด</div>
+      <div class="hero-value" id="total-revenue">฿0</div>
+      <div class="hero-sub" id="total-count">0 ออเดอร์</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="small-card">
+        <div class="small-label">เฉลี่ยต่อบิล</div>
+        <div class="small-value" id="avg-bill">฿0</div>
+      </div>
+      <div class="small-card">
+        <div class="small-label">ยอดขายวันนี้</div>
+        <div class="small-value" id="today-rev">฿0</div>
+      </div>
+    </div>
+
+    <div class="section-title">แนวโน้ม 7 วันล่าสุด</div>
+    <div class="chart-container">
       <canvas id="salesChart"></canvas>
     </div>
+
+    <div class="section-title">ประวัติย้อนหลัง</div>
+    <div class="list-container" id="daily-list">
+      </div>
   </div>
 
-  <section class="history-section">
-    <h2>ประวัติรายวัน</h2>
-    <div class="history-list" id="daily-list">
-      </div>
-  </section>
-</div>
+  <button class="fab" onclick="init()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+  </button>
 
-<button class="fab-refresh" onclick="getData()">🔄</button>
+  <script>
+    // --- STEP 1: CONFIG ---
+    const SB_URL = "https://uhruejkycwcxjhcokbfm.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
+    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+    let myChart = null;
 
-<script>
-const URL = "https://uhruejkycwcxjhcokbfm.supabase.co";
-const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
-const supabaseClient = supabase.createClient(URL, KEY);
-let salesChart = null;
+    // --- STEP 2: LOGIC ---
+    async function init() {
+      document.getElementById('loader').style.opacity = 1;
+      document.getElementById('loader').style.display = 'flex';
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-async function getData() {
-  document.getElementById('loader').style.display = 'flex';
-  try {
-    const { data, error } = await supabaseClient
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    updateUI(data);
-  } catch (e) {
-    alert(e.message);
-  } finally {
-    document.getElementById('loader').style.display = 'none';
-  }
-}
-
-function updateUI(data) {
-  // คำนวณยอดรวม
-  const total = data.reduce((s, r) => s + (r.actual_amount || 0), 0);
-  document.getElementById('rev-total').innerText = '฿' + total.toLocaleString();
-  document.getElementById('order-count').innerText = data.length.toLocaleString();
-
-  // จัดกลุ่มข้อมูลรายวัน
-  const dailyData = {};
-  data.forEach(r => {
-    const d = new Date(r.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-    dailyData[d] = (dailyMap = dailyData[d] || 0) + (r.actual_amount || 0);
-  });
-
-  // แสดง List
-  const list = document.getElementById('daily-list');
-  list.innerHTML = '';
-  Object.entries(dailyData).slice(0, 10).forEach(([date, val]) => {
-    list.innerHTML += `
-      <div class="history-item">
-        <span class="date-label">${date}</span>
-        <span class="amount-label">฿${val.toLocaleString()}</span>
-      </div>
-    `;
-  });
-
-  renderSalesChart(dailyData);
-}
-
-function renderSalesChart(dailyData) {
-  const ctx = document.getElementById('salesChart').getContext('2d');
-  const labels = Object.keys(dailyData).reverse().slice(-7);
-  const values = labels.map(l => dailyData[l]);
-
-  if (salesChart) salesChart.destroy();
-  
-  salesChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: values,
-        borderColor: '#FF9F0A',
-        borderWidth: 5,
-        tension: 0.4,
-        pointRadius: 4,
-        pointBackgroundColor: '#FF9F0A',
-        fill: true,
-        backgroundColor: (c) => {
-          const g = ctx.createLinearGradient(0, 0, 0, 250);
-          g.addColorStop(0, 'rgba(255, 159, 10, 0.25)');
-          g.addColorStop(1, 'rgba(255, 159, 10, 0)');
-          return g;
-        }
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#8E8E93', font: { size: 12, weight: '600' } } },
-        y: { display: false }
+        if (error) throw error;
+        processAndRender(data);
+      } catch (e) {
+        alert("Error: " + e.message);
+      } finally {
+        setTimeout(() => {
+          document.getElementById('loader').style.opacity = 0;
+          setTimeout(() => document.getElementById('loader').style.display = 'none', 400);
+        }, 500);
       }
     }
-  });
-}
 
-getData();
-</script>
+    function processAndRender(orders) {
+      // 1. ยอดรวมทั้งหมด
+      const totalRevenue = orders.reduce((s, r) => s + (r.actual_amount || 0), 0);
+      const orderCount = orders.length;
+      const avg = orderCount > 0 ? totalRevenue / orderCount : 0;
+
+      document.getElementById('total-revenue').innerText = '฿' + totalRevenue.toLocaleString();
+      document.getElementById('total-count').innerText = orderCount.toLocaleString() + ' ออเดอร์';
+      document.getElementById('avg-bill').innerText = '฿' + Math.round(avg).toLocaleString();
+
+      // 2. จัดกลุ่มรายวัน
+      const dailyMap = {};
+      const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+      
+      orders.forEach(r => {
+        const date = r.created_at.split('T')[0];
+        dailyMap[date] = (dailyMap[date] || 0) + (r.actual_amount || 0);
+      });
+
+      document.getElementById('today-rev').innerText = '฿' + (dailyMap[todayStr] || 0).toLocaleString();
+
+      // 3. แสดงรายการประวัติ
+      const listDiv = document.getElementById('daily-list');
+      listDiv.innerHTML = '';
+      Object.entries(dailyMap).slice(0, 14).forEach(([date, val]) => {
+        const dateDisplay = new Date(date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+        listDiv.innerHTML += `
+          <div class="list-item">
+            <span class="item-date">${dateDisplay}</span>
+            <span class="item-val">฿${val.toLocaleString()}</span>
+          </div>
+        `;
+      });
+
+      // 4. วาดกราฟ
+      renderChart(dailyMap);
+    }
+
+    function renderChart(dailyMap) {
+      const ctx = document.getElementById('salesChart').getContext('2d');
+      const labels = Object.keys(dailyMap).sort().slice(-7);
+      const dataValues = labels.map(l => dailyMap[l]);
+
+      if (myChart) myChart.destroy();
+      
+      myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.map(l => l.split('-')[2]), // เอาแค่เลขวันที่
+          datasets: [{
+            data: dataValues,
+            borderColor: '#FF9F0A',
+            borderWidth: 4,
+            tension: 0.4,
+            fill: true,
+            backgroundColor: 'rgba(255, 159, 10, 0.05)',
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#555' } },
+            y: { display: false }
+          }
+        }
+      });
+    }
+
+    // เริ่มทำงาน
+    init();
+  </script>
 </body>
 </html>
