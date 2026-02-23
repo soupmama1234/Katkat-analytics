@@ -2,223 +2,236 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>KATKAT Analytics Mobile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>KATKAT Analytics</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
 :root {
   --bg: #000000;
-  --card-bg: #121212;
-  --border: #282828;
-  --primary: #FF9F0A; /* สีส้มสไตล์ iOS Apple */
+  --card-bg: #111111;
+  --border: #222222;
+  --primary: #FF9F0A;
   --text-main: #FFFFFF;
   --text-sub: #8E8E93;
   --green: #32D74B;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
 body { 
   background: var(--bg); 
   color: var(--text-main); 
   font-family: 'IBM Plex Sans Thai', sans-serif; 
   margin: 0; 
   padding: 0;
-  line-height: 1.5;
+  /* รองรับรอยบาก (Notch) ของมือถือ */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow-x: hidden;
 }
 
-/* Container */
-.container { max-width: 500px; margin: 0 auto; padding: 20px 16px 100px; }
+.app-wrapper {
+  min-height: 100vh;
+  padding: 20px 20px 120px;
+}
 
 /* Header */
-.header { margin-bottom: 24px; padding-top: 10px; }
-.header h1 { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
-.header p { color: var(--text-sub); margin: 4px 0 0; font-size: 14px; }
+.header { margin-bottom: 30px; }
+.header h1 { font-size: 32px; font-weight: 800; margin: 0; color: var(--text-main); }
+.header p { color: var(--text-sub); font-size: 16px; margin-top: 5px; }
 
-/* Stats Grid */
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-.stat-card { 
-  background: var(--card-bg); 
-  padding: 20px 16px; 
-  border-radius: 16px; 
-  border: 1px solid var(--border);
-}
-.stat-label { color: var(--text-sub); font-size: 13px; font-weight: 500; margin-bottom: 8px; }
-.stat-value { 
-  font-family: 'Inter', sans-serif; 
-  font-size: 22px; 
-  font-weight: 700; 
-  color: var(--primary); 
-}
-
-/* Large Graph Card */
-.chart-card {
+/* Stats - เน้นตัวใหญ่ๆ */
+.stats-container { display: flex; gap: 15px; margin-bottom: 25px; }
+.stat-box {
+  flex: 1;
   background: var(--card-bg);
+  padding: 24px 15px;
   border-radius: 20px;
-  padding: 20px;
   border: 1px solid var(--border);
-  margin-bottom: 24px;
 }
-.chart-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
-.chart-container { height: 220px; position: relative; }
+.stat-label { font-size: 14px; color: var(--text-sub); margin-bottom: 10px; font-weight: 500; }
+.stat-value { font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 800; color: var(--primary); }
 
-/* Table Section */
-.list-card { background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border); overflow: hidden; }
-.list-item { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  padding: 16px 20px; 
+/* Chart Area */
+.main-card {
+  background: var(--card-bg);
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  margin-bottom: 30px;
+}
+.card-header { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--text-main); }
+.chart-box { height: 250px; width: 100%; }
+
+/* List รายวัน - อ่านง่ายขึ้น */
+.history-section h2 { font-size: 20px; font-weight: 700; margin-bottom: 15px; padding-left: 5px; }
+.history-list { background: var(--card-bg); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; }
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
   border-bottom: 1px solid var(--border);
 }
-.list-item:last-child { border-bottom: none; }
-.list-date { font-weight: 500; font-size: 15px; }
-.list-price { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--green); }
+.history-item:last-child { border-bottom: none; }
+.date-label { font-size: 17px; font-weight: 500; }
+.amount-label { font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; color: var(--green); }
 
-/* Loading State */
-#loading-overlay {
-  position: fixed; inset: 0; background: var(--bg);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+/* ปุ่ม Refresh ใหญ่ๆ แบบลอย */
+.fab-refresh {
+  position: fixed;
+  bottom: 40px;
+  right: 25px;
+  width: 65px;
+  height: 65px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  border: none;
+  box-shadow: 0 8px 25px rgba(255,159,10,0.4);
   z-index: 100;
 }
-.spinner {
-  width: 40px; height: 40px; border: 4px solid var(--border);
-  border-top-color: var(--primary); border-radius: 50%;
-  animation: spin 1s linear infinite;
+
+/* Loading */
+#loader {
+  position: fixed; inset: 0; background: #000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 999;
+}
+.loader-spin {
+  width: 50px; height: 50px;
+  border: 5px solid #222; border-top: 5px solid var(--primary);
+  border-radius: 50%; animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* Utility */
-.refresh-btn {
-  position: fixed; bottom: 30px; right: 20px;
-  background: var(--primary); color: black;
-  width: 56px; height: 56px; border-radius: 28px;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 15px rgba(255,159,10,0.4);
-  border: none; font-size: 24px; z-index: 90;
-}
 </style>
 </head>
 <body>
 
-<div id="loading-overlay">
-  <div class="spinner"></div>
-  <p style="margin-top:16px; color:var(--text-sub)">KATKAT กำลังสรุปยอด...</p>
+<div id="loader">
+  <div class="loader-spin"></div>
+  <p style="margin-top:20px; color:var(--text-sub); font-weight: 500;">สรุปข้อมูลล่าสุด...</p>
 </div>
 
-<div class="container">
+<div class="app-wrapper">
   <header class="header">
     <h1>Analytics</h1>
-    <p id="date-range">ข้อมูลสรุปย้อนหลัง 30 วัน</p>
+    <p>สรุปยอด KAT KAT KATSU</p>
   </header>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">ยอดขายทั้งหมด</div>
-      <div class="stat-value" id="total-revenue">฿0</div>
+  <div class="stats-container">
+    <div class="stat-box">
+      <div class="stat-label">ยอดรับจริง</div>
+      <div class="stat-value" id="rev-total">฿0</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-box">
       <div class="stat-label">จำนวนบิล</div>
-      <div class="stat-value" id="total-orders">0</div>
+      <div class="stat-value" id="order-count">0</div>
     </div>
   </div>
 
-  <div class="chart-card">
-    <div class="chart-title">
-      <span>แนวโน้มยอดขาย</span>
-      <span style="font-size:12px; color:var(--text-sub)">7 วันล่าสุด</span>
-    </div>
-    <div class="chart-container">
-      <canvas id="mainChart"></canvas>
+  <div class="main-card">
+    <div class="card-header">กราฟยอดขาย 7 วัน</div>
+    <div class="chart-box">
+      <canvas id="salesChart"></canvas>
     </div>
   </div>
 
-  <h2 style="font-size:18px; margin-bottom:16px; padding-left:4px">ประวัติรายวัน</h2>
-  <div class="list-card" id="daily-list">
-    </div>
+  <section class="history-section">
+    <h2>ประวัติรายวัน</h2>
+    <div class="history-list" id="daily-list">
+      </div>
+  </section>
 </div>
 
-<button class="refresh-btn" onclick="fetchData()">🔄</button>
+<button class="fab-refresh" onclick="getData()">🔄</button>
 
 <script>
-// ── CONFIG ──────────────────────────────────────────
-const SUPABASE_URL = "https://uhruejkycwcxjhcokbfm.supabase.co"; 
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
+const URL = "https://uhruejkycwcxjhcokbfm.supabase.co";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocnVlamt5Y3djeGpoY29rYmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjE4NDUsImV4cCI6MjA4NzIzNzg0NX0.M67DwOTw2cKXHlPBJnfn7FSsRmUCv83s7J3-CkvZguc";
+const supabaseClient = supabase.createClient(URL, KEY);
+let salesChart = null;
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let myChart = null;
-
-async function fetchData() {
-  document.getElementById('loading-overlay').style.display = 'flex';
+async function getData() {
+  document.getElementById('loader').style.display = 'flex';
   try {
-    const { data, error } = await sb
+    const { data, error } = await supabaseClient
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    renderDashboard(data);
-  } catch (err) {
-    alert("โหลดข้อมูลไม่สำเร็จ: " + err.message);
+    updateUI(data);
+  } catch (e) {
+    alert(e.message);
   } finally {
-    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('loader').style.display = 'none';
   }
 }
 
-function renderDashboard(data) {
-  const totalRev = data.reduce((sum, row) => sum + (row.actual_amount || 0), 0);
-  document.getElementById('total-revenue').innerText = '฿' + totalRev.toLocaleString();
-  document.getElementById('total-orders').innerText = data.length.toLocaleString();
+function updateUI(data) {
+  // คำนวณยอดรวม
+  const total = data.reduce((s, r) => s + (r.actual_amount || 0), 0);
+  document.getElementById('rev-total').innerText = '฿' + total.toLocaleString();
+  document.getElementById('order-count').innerText = data.length.toLocaleString();
 
-  // Group by Day
-  const dailyMap = {};
-  data.forEach(row => {
-    const date = new Date(row.created_at).toLocaleDateString('th-TH', { 
-      day: 'numeric', month: 'short' 
-    });
-    dailyMap[date] = (dailyMap[date] || 0) + (row.actual_amount || 0);
+  // จัดกลุ่มข้อมูลรายวัน
+  const dailyData = {};
+  data.forEach(r => {
+    const d = new Date(r.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+    dailyData[d] = (dailyMap = dailyData[d] || 0) + (r.actual_amount || 0);
   });
 
-  // Render List
-  const listContainer = document.getElementById('daily-list');
-  listContainer.innerHTML = '';
-  Object.entries(dailyMap).slice(0, 10).forEach(([date, amt]) => {
-    listContainer.innerHTML += `
-      <div class="list-item">
-        <div class="list-date">${date}</div>
-        <div class="list-price">฿${amt.toLocaleString()}</div>
+  // แสดง List
+  const list = document.getElementById('daily-list');
+  list.innerHTML = '';
+  Object.entries(dailyData).slice(0, 10).forEach(([date, val]) => {
+    list.innerHTML += `
+      <div class="history-item">
+        <span class="date-label">${date}</span>
+        <span class="amount-label">฿${val.toLocaleString()}</span>
       </div>
     `;
   });
 
-  // Render Chart
-  renderChart(dailyMap);
+  renderSalesChart(dailyData);
 }
 
-function renderChart(dailyMap) {
-  const ctx = document.getElementById('mainChart').getContext('2d');
-  const labels = Object.keys(dailyMap).reverse().slice(-7);
-  const values = labels.map(l => dailyMap[l]);
+function renderSalesChart(dailyData) {
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  const labels = Object.keys(dailyData).reverse().slice(-7);
+  const values = labels.map(l => dailyData[l]);
 
-  if (myChart) myChart.destroy();
+  if (salesChart) salesChart.destroy();
   
-  myChart = new Chart(ctx, {
+  salesChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [{
         data: values,
         borderColor: '#FF9F0A',
-        borderWidth: 4,
-        pointRadius: 0,
+        borderWidth: 5,
         tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#FF9F0A',
         fill: true,
-        backgroundColor: (context) => {
-          const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-          gradient.addColorStop(0, 'rgba(255, 159, 10, 0.2)');
-          gradient.addColorStop(1, 'rgba(255, 159, 10, 0)');
-          return gradient;
+        backgroundColor: (c) => {
+          const g = ctx.createLinearGradient(0, 0, 0, 250);
+          g.addColorStop(0, 'rgba(255, 159, 10, 0.25)');
+          g.addColorStop(1, 'rgba(255, 159, 10, 0)');
+          return g;
         }
       }]
     },
@@ -227,16 +240,14 @@ function renderChart(dailyMap) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#8E8E93', font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { color: '#8E8E93', font: { size: 12, weight: '600' } } },
         y: { display: false }
       }
     }
   });
 }
 
-// Start
-fetchData();
+getData();
 </script>
-
 </body>
 </html>
