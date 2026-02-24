@@ -1305,95 +1305,89 @@ document.addEventListener('click',e=>{
 });
 
 // ── OCR ───────────────────────────────────────────────────
-// 1. ตั้งค่าพื้นฐาน (ใช้ชื่อตัวแปรที่ในไฟล์คุณมี)
-const GEMINI_MODEL = 'gemini-2.5-flash'; 
-let geminiKey = '';
+const GEMINI_MODEL='gemini-2.5-flash';
+let geminiKey='';
 
-// 2. ฟังก์ชันจัดการ API Key
-function initApiKey() {
-  geminiKey = localStorage.getItem('gemini_api_key') || '';
-  if (!geminiKey) {
-    const wrap = document.getElementById('apikey-wrap');
+function initApiKey(){
+  geminiKey=localStorage.getItem('gemini_api_key')||'';
+  if(!geminiKey){
+    const wrap=document.getElementById('apikey-wrap');
     if(wrap) wrap.classList.add('show');
-    const btn = document.getElementById('ocr-btn');
-    if(btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
+    const btn=document.getElementById('ocr-btn');
+    if(btn){btn.style.opacity='0.4';btn.style.pointerEvents='none';}
   }
 }
 
-function saveApiKey() {
-  const input = document.getElementById('apikey-input');
-  const k = input ? input.value.trim() : '';
-  if (!k) { alert('ใส่ API key ก่อนครับ'); return; }
-  localStorage.setItem('gemini_api_key', k);
-  geminiKey = k;
+function saveApiKey(){
+  const k=(document.getElementById('apikey-input').value||'').trim();
+  if(!k){showToast('ใส่ API key ก่อนครับ','err');return;}
+  localStorage.setItem('gemini_api_key',k);
+  geminiKey=k;
   document.getElementById('apikey-wrap').classList.remove('show');
-  const ocrBtn = document.getElementById('ocr-btn');
-  if(ocrBtn) { ocrBtn.style.opacity = ''; ocrBtn.style.pointerEvents = ''; }
-  alert('✅ บันทึก API key แล้ว');
+  const btn=document.getElementById('ocr-btn');
+  if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
+  showToast('✅ บันทึก API key แล้ว');
 }
 
-// 3. ฟังก์ชันหลัก (ยุบรวมที่พังๆ ให้เหลืออันเดียวที่ทำงานได้)
-async function handleOcrImage(input) {
-  if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
+async function handleOcrImage(input){
+  if(!input.files||!input.files[0]) return;
+  const file=input.files[0];
 
-  // UI: แสดงรูปที่เลือก
-  const preview = document.getElementById('ocr-preview');
-  if(preview) {
-    preview.src = URL.createObjectURL(file);
-    preview.style.display = 'block';
-  }
+  const preview=document.getElementById('ocr-preview');
+  if(preview){preview.src=URL.createObjectURL(file);preview.style.display='block';}
 
-  // UI: สถานะกำลังโหลด
-  const btn = document.getElementById('ocr-btn');
-  btn.disabled = true;
-  btn.innerHTML = '⏳ กำลังอ่านใบเสร็จ...';
+  const btn=document.getElementById('ocr-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span style="font-size:18px">⏳</span> กำลังอ่านใบเสร็จ...';
+  document.getElementById('ocr-result').style.display='none';
 
-  try {
-    // แปลงไฟล์เป็น Base64
-    const b64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = rej;
+  try{
+    const b64=await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(',')[1]);
+      r.onerror=rej;
       r.readAsDataURL(file);
     });
 
-    const prompt = "อ่านใบเสร็จนี้แล้ว return JSON array เท่านั้น ห้ามมีข้อความอื่น format: [{\"item\":\"ชื่อสินค้า\",\"quantity\":จำนวน,\"unit\":\"หน่วย\",\"amount\":ราคารวม,\"vendor\":\"ชื่อร้าน\",\"date\":\"YYYY-MM-DD\"}]";
+    const prompt=`อ่านใบเสร็จนี้แล้ว return JSON array เท่านั้น ไม่ต้องมีข้อความอื่น
+format: [{"item":"ชื่อสินค้า","quantity":จำนวน,"unit":"หน่วย","amount":ราคารวม,"vendor":"ชื่อร้าน","date":"YYYY-MM-DD"}]
+- item: ชื่อสินค้าภาษาไทยหรืออังกฤษตามใบเสร็จ
+- quantity: น้ำหนักหรือจำนวน (ตัวเลข)
+- unit: kg/g/ชิ้น/แพ็ค ฯลฯ
+- amount: ราคารวมของสินค้านั้น (ตัวเลข ไม่มี ฿)
+- vendor: ชื่อร้าน
+- date: วันที่ในใบเสร็จ format YYYY-MM-DD ถ้าไม่มีใส่ null
+ถ้าอ่านไม่ออกหรือไม่ใช่ใบเสร็จให้ return []`;
 
-    // ยิง API
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ inline_data: { mime_type: file.type, data: b64 } }, { text: prompt }] }]
+    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[
+          {inline_data:{mime_type:file.type,data:b64}},
+          {text:prompt}
+        ]}],
+        generationConfig:{temperature:0.1}
       })
     });
 
-    const result = await resp.json();
-    
-    // ดัก Error จาก API
-    if (!resp.ok) throw new Error(result.error?.message || 'API พัง');
+    const result=await resp.json();
+    if(!resp.ok) throw new Error(`${resp.status}: ${result.error?.message||'API error'}`);
 
-    // แกะข้อความ JSON (ลบพวก ```json ออก)
-    let rawText = result.candidates[0].content.parts[0].text;
-    let cleanText = rawText.replace(/```json|```/g, "").trim();
-    
-    const items = JSON.parse(cleanText);
+    const rawText=result.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
+    const cleanText=rawText.replace(/```json|```/g,'').trim();
+    const items=JSON.parse(cleanText);
 
-    if (items && items.length > 0) {
-      // เรียกฟังก์ชันวาดตาราง (ที่มีอยู่แล้วในไฟล์คุณ)
-      renderOcrResult(items); 
-    } else {
-      alert('ไม่พบรายการสินค้า');
-    }
+    if(!items.length){showToast('ไม่พบรายการในรูปนี้','err');return;}
+    renderOcrResult(items);
 
-  } catch (err) {
-    console.error("พังตรงนี้:", err);
-    alert('❌ Error: ' + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '📷 ถ่ายรูป / เลือกรูปใบเสร็จ';
-    input.value = '';
+  }catch(err){
+    showToast('❌ '+err.message,'err');
+    console.error(err);
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML='<span style="font-size:22px">📷</span> ถ่ายรูป / เลือกรูปใบเสร็จ';
+    input.value='';
   }
 }
 
@@ -1409,22 +1403,17 @@ function renderOcrResult(items){
           ${item.vendor||''}
           ${item.date?` · ${item.date}`:''}
         </div>
-        <select class="ocr-cat-select" id="ocr-cat-${i}">
-          ${catOptions}
-        </select>
+        <select class="ocr-cat-select" id="ocr-cat-${i}">${catOptions}</select>
       </div>
       <div class="ocr-item-amt">฿${fmt(item.amount)}</div>
     </div>
   `).join('');
 
-  // auto-guess category
   items.forEach((item,i)=>{
-    const guessed=guessCategory(item.item||'');
     const sel=document.getElementById(`ocr-cat-${i}`);
-    if(sel) sel.value=guessed;
+    if(sel) sel.value=guessCategory(item.item||'');
   });
 
-  // store for later
   window._ocrItems=items;
   document.getElementById('ocr-result').style.display='block';
   document.getElementById('ocr-result').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -1437,7 +1426,7 @@ function guessCategory(item){
   if(['ถุง','กล่อง','ถ้วย','ช้อน','ส้อม','ชาม'].some(k=>il.includes(k))) return 'เครื่องดื่ม/บรรจุภัณฑ์';
   if(['แก๊ส','น้ำดื่ม'].some(k=>il.includes(k))) return 'สาธารณูปโภค';
   if(['ค่าเช่า'].some(k=>il.includes(k))) return 'ค่าเช่า';
-  return 'วัตถุดิบสด'; // default
+  return 'วัตถุดิบสด';
 }
 
 async function saveOcrItems(){
@@ -1469,10 +1458,8 @@ async function saveOcrItems(){
   try{
     const{error}=await sb.from('expenses').insert(toSave);
     if(error) throw error;
-    // update local state
-    const{data}=await sb.from('expenses').select('*').order('date',{ascending:false}).limit(toSave.length*2);
+    const{data}=await sb.from('expenses').select('*').order('date',{ascending:false}).limit(toSave.length+10);
     if(data) allExpenses=[...data.filter(d=>!allExpenses.find(e=>e.id===d.id)),...allExpenses];
-    // update autocomplete history
     toSave.forEach(e=>{
       if(e.item&&!itemHistory.includes(e.item)) itemHistory.push(e.item);
       if(e.vendor&&!vendorHistory.includes(e.vendor)) vendorHistory.push(e.vendor);
@@ -1489,8 +1476,8 @@ async function saveOcrItems(){
 
 function clearOcr(){
   document.getElementById('ocr-result').style.display='none';
-  document.getElementById('ocr-preview').style.display='none';
-  document.getElementById('ocr-preview').src='';
+  const preview=document.getElementById('ocr-preview');
+  if(preview){preview.style.display='none';preview.src='';}
   window._ocrItems=[];
 }
 
