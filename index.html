@@ -1331,21 +1331,20 @@ function saveApiKey() {
 async function handleOcrImage(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
-  const btn = document.getElementById('ocr-btn');
 
-  // 1. แสดงรูป Preview ทันที
+  // 1. UI: แสดง Preview และเปลี่ยนสถานะปุ่ม
   const preview = document.getElementById('ocr-preview');
   preview.src = URL.createObjectURL(file);
   preview.style.display = 'block';
 
-  // 2. ตั้งค่า Loading State
+  const btn = document.getElementById('ocr-btn');
   btn.classList.add('loading');
   btn.disabled = true;
   btn.innerHTML = '<span style="font-size:18px">⏳</span> กำลังอ่านใบเสร็จ...';
   document.getElementById('ocr-result').style.display = 'none';
 
   try {
-    // 3. แปลงภาพเป็น Base64
+    // 2. แปลงไฟล์เป็น Base64
     const b64 = await new Promise((res, rej) => {
       const r = new FileReader();
       r.onload = () => res(r.result.split(',')[1]);
@@ -1353,18 +1352,17 @@ async function handleOcrImage(input) {
       r.readAsDataURL(file);
     });
 
-    // 4. เตรียม Prompt
     const prompt = `อ่านใบเสร็จนี้แล้ว return JSON array เท่านั้น ไม่ต้องมีข้อความอื่น
 format: [{"item":"ชื่อสินค้า","quantity":จำนวน,"unit":"หน่วย","amount":ราคารวม,"vendor":"ชื่อร้าน","date":"YYYY-MM-DD"}]
-- item: ชื่อสินค้า ภาษาไทยหรืออังกฤษตามใบเสร็จ
-- quantity: จำนวน (ตัวเลขเท่านั้น ถ้าไม่มีใส่ 1)
+- item: ชื่อสินค้า ภาษาไทยหรืออังกฤษ
+- quantity: จำนวน (ตัวเลข)
 - unit: หน่วย เช่น kg/g/ชิ้น/แพ็ค
-- amount: ราคารวมของสินค้านั้น (ตัวเลขเท่านั้น)
+- amount: ราคารวม (ตัวเลข)
 - vendor: ชื่อร้าน
-- date: วันที่ YYYY-MM-DD (ถ้าไม่มีใส่ null)
+- date: วันที่ YYYY-MM-DD หรือ null
 ถ้าไม่ใช่ใบเสร็จให้ return []`;
 
-    // 5. ยิง API Gemini
+    // 3. ยิง API (ใช้ตัวแปร GEMINI_MODEL และ geminiKey ที่คุณประกาศไว้)
     const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1386,30 +1384,30 @@ format: [{"item":"ชื่อสินค้า","quantity":จำนวน,"un
 
     const data = await resp.json();
     
-    // 6. ดึง Text และ Clean JSON (แก้จุดที่พัง)
+    // 4. แกะข้อมูล (Clean JSON)
     let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
     
-    // ลบ Markdown (```json ... ```) ออกถ้ามี
+    // ตัด ```json หรือ ``` ออก (Regex)
     const cleanJson = rawText.replace(/```json|```/g, "").trim();
     
     const items = JSON.parse(cleanJson);
 
     if (!Array.isArray(items) || items.length === 0) {
-      showToast('ไม่พบรายการในรูปนี้ หรือรูปไม่ชัด', 'err');
+      showToast('ไม่พบรายการในรูปนี้','err');
     } else {
+      // 5. ส่งไปวาดตาราง (เรียกฟังก์ชันเดิมที่คุณมี)
       renderOcrResult(items);
-      showToast(`✅ อ่านได้ ${items.length} รายการ`);
+      showToast(`✅ อ่านพบ ${items.length} รายการ`);
     }
 
   } catch (e) {
     showToast('❌ ' + e.message, 'err');
-    console.error("Full Error:", e);
+    console.error("OCR Debug:", e);
   } finally {
-    // 7. คืนค่าสถานะปุ่ม
     btn.classList.remove('loading');
     btn.disabled = false;
     btn.innerHTML = '<span style="font-size:22px">📷</span> ถ่ายรูป / เลือกรูปใบเสร็จ';
-    input.value = ''; // เคลียร์ input เพื่อให้เลือกรูปเดิมซ้ำได้
+    input.value = '';
   }
 }
 
