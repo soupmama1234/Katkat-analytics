@@ -352,6 +352,12 @@
         <button class="pill" onclick="setTrendPeriod('30d',this)">1 เดือน</button>
         <button class="pill" onclick="setTrendPeriod('1y',this)">1 ปี</button>
       </div>
+      <div class="grid2" style="margin-bottom:12px">
+        <div class="scard"><div class="scard-lbl">ยอดรวมช่วงนี้</div><div class="scard-val green" id="trend-total">฿0</div></div>
+        <div class="scard"><div class="scard-lbl">เฉลี่ยต่อบิล</div><div class="scard-val" id="trend-avg">—</div></div>
+        <div class="scard"><div class="scard-lbl">จำนวนบิล</div><div class="scard-val" id="trend-cnt">0</div></div>
+        <div class="scard"><div class="scard-lbl">บิลสูงสุด</div><div class="scard-val" id="trend-max">—</div></div>
+      </div>
       <div class="chart-box" style="height:200px"><canvas id="trend-chart"></canvas></div>
       <div class="card-list" id="trend-table" style="margin-top:14px;margin-bottom:0"></div>
       <div class="sec">📡 Platform แยกช่วง</div>
@@ -1281,16 +1287,18 @@ function setOvPeriod(p,btn){
 function renderOverview(){
   // ยอดเงิน/trend/platform → allOrders (รวม historical)
   const orders=filterByPeriod(allOrders,ovPeriod);
-  // เมนู/หมวด/เฉลี่ยต่อบิล → realOrders เท่านั้น (มี items จริง)
+  // เมนู/หมวด → realOrders เท่านั้น (มี items จริง)
   const real=filterByPeriod(realOrders,ovPeriod);
   const s=computeFrom(real);
   const sAll=computeFrom(orders);
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
+  // เฉลี่ยต่อบิล = realOrders ในช่วงเดียวกัน (ไม่ใช่ทั้งหมด)
   const realCnt=real.length;
   const realTotal=real.reduce((sum,r)=>sum+(r.actual_amount||0),0);
+  const avg=realCnt?Math.round(realTotal/realCnt):0;
   document.getElementById('ov-rev').textContent='฿'+fmt(total);
   document.getElementById('ov-cnt').textContent=fmt(orders.length)+' ออเดอร์';
-  document.getElementById('ov-avg').textContent='฿'+fmt(Math.round(realCnt?realTotal/realCnt:0));
+  document.getElementById('ov-avg').textContent=avg?'฿'+fmt(avg):'—';
   document.getElementById('ov-today').textContent='฿'+fmt(computeFrom(filterByPeriod(allOrders,'today')).dailyMap[todayStr]||0);
   document.getElementById('ov-range-lbl').textContent=periodLabel(ovPeriod);
   renderPlatformBars('ov-platform',sAll.platformRev,sAll.platformCnt,total,sAll.posPayment);
@@ -1327,8 +1335,18 @@ function renderToday(){
 // ── TREND ─────────────────────────────────────────────────
 function setTrendPeriod(p,btn){trendPeriod=p;document.querySelectorAll('#page-trend>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTrend();}
 function renderTrend(){
-  const orders=filterByPeriod(allOrders,trendPeriod==='7d'?'7d':trendPeriod==='30d'?'30d':'all');
+  const period=trendPeriod==='7d'?'7d':trendPeriod==='30d'?'30d':'all';
+  const orders=filterByPeriod(allOrders,period);
+  const real=filterByPeriod(realOrders,period);
   const s=computeFrom(orders);
+  const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
+  const realTotal=real.reduce((sum,r)=>sum+(r.actual_amount||0),0);
+  const avg=real.length?Math.round(realTotal/real.length):0;
+  const maxBill=real.length?Math.max(...real.map(r=>r.actual_amount||0)):0;
+  document.getElementById('trend-total').textContent='฿'+fmt(total);
+  document.getElementById('trend-avg').textContent=avg?'฿'+fmt(avg):'—';
+  document.getElementById('trend-cnt').textContent=fmt(orders.length)+' บิล';
+  document.getElementById('trend-max').textContent=maxBill?'฿'+fmt(maxBill):'—';
   const sorted=Object.keys(s.dailyMap).sort();
   let labels,values,tableRows;
   if(trendPeriod==='1y'){
@@ -1346,7 +1364,6 @@ function renderTrend(){
   const ctx=document.getElementById('trend-chart').getContext('2d');
   trendChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{data:values,borderColor:'#FF9F0A',borderWidth:3,tension:0.4,fill:true,backgroundColor:'rgba(255,159,10,0.07)',pointRadius:2,pointBackgroundColor:'#FF9F0A'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:11}}},y:{display:false}}}});
   document.getElementById('trend-table').innerHTML=tableRows.map(r=>`<div class="list-row"><span class="ddate">${r.label}</span><span class="dval">฿${fmt(r.val)}</span></div>`).join('');
-  const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
   renderPlatformBars('trend-platform',s.platformRev,s.platformCnt,total,s.posPayment);
   renderWeekdayBars('trend-weekday',s.byWeekday);
   const sAll=computeFrom(allOrders);renderHeatmap(sAll.dailyMap);
@@ -1418,10 +1435,10 @@ function renderPlatformBars(elId,platformRev,platformCnt,totalRev,posPayment){
       const pp=posPayment;
       const posTotal=platformRev.pos||1;
       const parts=[];
-      if(pp.cash>0) parts.push(`<span title="เงินสด">💵 ${Math.round(pp.cash/posTotal*100)}%</span>`);
-      if(pp.transfer>0) parts.push(`<span title="โอน">📲 ${Math.round(pp.transfer/posTotal*100)}%</span>`);
-      if(pp.qr>0) parts.push(`<span title="QR/PromptPay">📱 ${Math.round(pp.qr/posTotal*100)}%</span>`);
-      if(pp.card>0) parts.push(`<span title="บัตร">💳 ${Math.round(pp.card/posTotal*100)}%</span>`);
+      if(pp.cash>0) parts.push(`<span title="เงินสด">💵 ${Math.round(pp.cash/posTotal*100)}% ฿${fmt(pp.cash)}</span>`);
+      if(pp.transfer>0) parts.push(`<span title="โอน">📲 ${Math.round(pp.transfer/posTotal*100)}% ฿${fmt(pp.transfer)}</span>`);
+      if(pp.qr>0) parts.push(`<span title="QR/PromptPay">📱 ${Math.round(pp.qr/posTotal*100)}% ฿${fmt(pp.qr)}</span>`);
+      if(pp.card>0) parts.push(`<span title="บัตร">💳 ${Math.round(pp.card/posTotal*100)}% ฿${fmt(pp.card)}</span>`);
       if(pp.other>0&&(pp.cash+pp.transfer+pp.qr+pp.card)===0) parts.push(`<span title="ไม่ระบุ">❓</span>`);
       if(parts.length) posDetail=`<div style="font-size:10px;color:var(--dim);margin-top:3px;display:flex;gap:8px">${parts.join('')}</div>`;
     }
