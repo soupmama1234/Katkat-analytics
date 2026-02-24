@@ -220,6 +220,29 @@
 
     .page{display:none}.page.active{display:block}
     .empty{padding:24px;text-align:center;color:var(--dim);font-size:13px}
+    /* RECENT HISTORY */
+    .recent-panel{background:var(--surface);border:1px solid var(--border2);border-radius:16px;
+      padding:12px;margin-bottom:12px}
+    .recent-title{font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;
+      letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .recent-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2);
+      gap:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .recent-item:last-child{border-bottom:none}
+    .recent-item:active{opacity:.7}
+    .recent-info{flex:1;min-width:0}
+    .recent-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .recent-meta{font-size:11px;color:var(--dim);margin-top:2px}
+    .recent-amt{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--danger);flex-shrink:0}
+    .recent-copy{font-size:11px;color:var(--blue);flex-shrink:0;padding:4px 8px;
+      background:rgba(10,132,255,0.1);border-radius:8px}
+
+    /* CAT SUGGEST */
+    .cat-suggest{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .cat-suggest-chip{background:rgba(255,159,10,0.1);border:1px solid rgba(255,159,10,0.3);
+      color:var(--primary);font-size:11px;font-weight:700;padding:5px 10px;border-radius:10px;
+      cursor:pointer;transition:all .2s}
+    .cat-suggest-chip:active{background:rgba(255,159,10,0.3)}
+
     select.form-input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
 
     /* OCR */
@@ -281,10 +304,10 @@
     <!-- ══ OVERVIEW ══ -->
     <div id="page-overview" class="page active">
       <div class="pills">
-        <button class="pill active" onclick="setOvPeriod('all',this)">ทั้งหมด</button>
-        <button class="pill" onclick="setOvPeriod('today',this)">วันนี้</button>
+        <button class="pill active" onclick="setOvPeriod('today',this)">วันนี้</button>
         <button class="pill" onclick="setOvPeriod('7d',this)">7 วัน</button>
         <button class="pill" onclick="setOvPeriod('30d',this)">30 วัน</button>
+        <button class="pill" onclick="setOvPeriod('all',this)">ทั้งหมด</button>
       </div>
       <div class="hero">
         <div class="hero-lbl">ยอดรับจริง</div>
@@ -402,6 +425,12 @@
         <div class="form-wrap">
           <div class="form-title">💸 บันทึกแบบกรอกมือ</div>
 
+          <!-- RECENT HISTORY -->
+          <div class="recent-panel" id="recent-panel" style="display:none">
+            <div class="recent-title">🕐 บันทึกล่าสุด — กดเพื่อ copy</div>
+            <div id="recent-list"></div>
+          </div>
+
           <div class="form-row">
             <label class="form-label">วันที่</label>
             <input type="date" id="exp-date" class="form-input">
@@ -410,39 +439,42 @@
           <div class="form-row">
             <label class="form-label">หมวดหมู่</label>
             <div class="cat-pills" id="exp-cat-pills"></div>
+            <div class="cat-suggest" id="cat-suggest" style="display:none"></div>
           </div>
 
           <div class="form-row">
             <label class="form-label">รายการ</label>
             <div class="ac-wrap">
-              <input type="text" id="exp-item" class="form-input" placeholder="เช่น หมูสันนอก" autocomplete="off" oninput="acInput('exp-item','exp-item-ac',itemHistory)">
+              <input type="text" id="exp-item" class="form-input" placeholder="เช่น หมูสันนอก" autocomplete="off" oninput="acInput('exp-item','exp-item-ac',itemHistory);suggestCategory(this.value)">
               <div class="ac-list" id="exp-item-ac"></div>
             </div>
             <div class="warn-similar" id="warn-item"></div>
           </div>
 
           <div class="form-row">
-            <label class="form-label">จำนวน × ราคา/หน่วย</label>
-            <div class="row3">
-              <input type="number" id="exp-qty" class="form-input" placeholder="จำนวน" inputmode="decimal" oninput="calcAmount()">
-              <input type="number" id="exp-ppu" class="form-input" placeholder="ราคา/หน่วย" inputmode="decimal" oninput="calcAmount()">
-              <div class="ac-wrap">
-                <input type="text" id="exp-unit" class="form-input" placeholder="หน่วย" autocomplete="off" oninput="acInput('exp-unit','exp-unit-ac',unitHistory)">
-                <div class="ac-list" id="exp-unit-ac"></div>
-              </div>
-            </div>
-            <div class="unit-pills" id="unit-presets" style="margin-top:8px"></div>
-          </div>
-
-          <div class="form-row">
-            <label class="form-label">ยอดรวม</label>
-            <div class="calc-display" id="exp-amount-display">฿0</div>
+            <label class="form-label">ยอดรวมที่จ่าย <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="exp-amount-input" class="form-input" placeholder="฿ ยอดรวม" inputmode="decimal" oninput="calcPpu()" style="font-size:20px;font-weight:700;color:var(--primary)">
             <input type="hidden" id="exp-amount">
           </div>
 
           <div class="form-row">
+            <label class="form-label">จำนวน + หน่วย <span style="font-weight:400;color:var(--dim)">(ไม่บังคับ — ใส่เพื่อคำนวณราคา/หน่วย)</span></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <input type="number" id="exp-qty" class="form-input" placeholder="เช่น 1.5" inputmode="decimal" oninput="calcPpu()">
+              <div class="ac-wrap">
+                <input type="text" id="exp-unit" class="form-input" placeholder="หน่วย เช่น kg" autocomplete="off" oninput="acInput('exp-unit','exp-unit-ac',unitHistory)">
+                <div class="ac-list" id="exp-unit-ac"></div>
+              </div>
+            </div>
+            <div class="unit-pills" id="unit-presets" style="margin-top:8px"></div>
+            <div id="ppu-display" style="display:none;margin-top:8px;background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--dim)">
+              ราคา/หน่วย: <span id="ppu-val" style="color:var(--primary);font-weight:700;font-family:'Inter',sans-serif"></span>
+            </div>
+          </div>
+
+          <div class="form-row">
             <label class="form-label">ส่วนลดท้ายบิล (ถ้ามี)</label>
-            <input type="number" id="exp-discount" class="form-input" placeholder="0" inputmode="decimal" oninput="calcAmount()">
+            <input type="number" id="exp-discount" class="form-input" placeholder="0" inputmode="decimal" oninput="calcPpu()">
           </div>
 
           <div class="form-row">
@@ -622,7 +654,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 // ── STATE ─────────────────────────────────────────────────
 // allOrders = ทุก orders, realOrders = บิลจริง (is_history!=true), histOrders = historical aggregate
 let allOrders=[],realOrders=[],histOrders=[],catMap={},allExpenses=[],allIncome=[];
-let ovPeriod='all',trendPeriod='7d',peakScope='all';
+let ovPeriod='today',trendPeriod='7d',peakScope='all';
 let expListPeriod='today',expAnaPeriod='30d';
 let trendChart=null,peakChart=null,wdChart=null,anaChart=null;
 const fmt=n=>(n||0).toLocaleString('th-TH');
@@ -679,6 +711,7 @@ async function init(){
 
     buildForms();
     initApiKey();
+    renderRecentExpenses();
     renderAll();
   }catch(e){alert('Error: '+e.message);}
   finally{loader(false);}
@@ -771,13 +804,24 @@ function checkSimilar(val){
 }
 
 // ── CALC ─────────────────────────────────────────────────
-function calcAmount(){
+function calcPpu(){
+  const total=parseFloat(document.getElementById('exp-amount-input').value)||0;
   const qty=parseFloat(document.getElementById('exp-qty').value)||0;
-  const ppu=parseFloat(document.getElementById('exp-ppu').value)||0;
   const disc=parseFloat(document.getElementById('exp-discount').value)||0;
-  const amt=Math.max(0,(qty*ppu)-disc);
-  document.getElementById('exp-amount').value=amt;
-  document.getElementById('exp-amount-display').textContent='฿'+fmt(amt);
+  const net=Math.max(0,total-disc);
+  // set hidden amount
+  document.getElementById('exp-amount').value=net||total;
+  // show ppu if qty given
+  const ppuDisplay=document.getElementById('ppu-display');
+  const ppuVal=document.getElementById('ppu-val');
+  const unit=document.getElementById('exp-unit').value||'หน่วย';
+  if(qty>0&&total>0){
+    const ppu=net>0?(net/qty):(total/qty);
+    ppuVal.textContent=`฿${ppu.toFixed(2)}/${unit}`;
+    ppuDisplay.style.display='block';
+  }else{
+    ppuDisplay.style.display='none';
+  }
 }
 function calcIncAmount(){
   const qty=parseFloat(document.getElementById('inc-qty').value)||0;
@@ -787,22 +831,109 @@ function calcIncAmount(){
   document.getElementById('inc-amount-display').textContent='฿'+fmt(amt);
 }
 
+// ── CATEGORY SUGGEST ──────────────────────────────────────
+function suggestCategory(val){
+  const suggest=document.getElementById('cat-suggest');
+  if(!val||val.length<2){suggest.style.display='none';return;}
+  // guess top matches
+  const il=val.toLowerCase();
+  const matches=[];
+  const rules=[
+    {cats:['วัตถุดิบสด'],kw:['หมู','ไก่','เนื้อ','กุ้ง','ปลา','ไข่','นม','ชีส','เนย','ผัก','กะหล่ำ','มันฝรั่ง','แครอท','กระเทียม','ข้าว','สันนอก','สันใน','สะโพก','อกไก่','ทูน่า','แฮม','เบค']},
+    {cats:['ของแห้ง/เครื่องปรุง'],kw:['น้ำมัน','ซอส','แป้ง','เกลือ','น้ำตาล','มายอง','มิริน','โชยุ','เกล็ด','เครื่องปรุง','พริก','กะปิ','น้ำปลา','ซีอิ๊ว','oyster','mayo']},
+    {cats:['เครื่องดื่ม/บรรจุภัณฑ์'],kw:['ถุง','กล่อง','ถ้วย','ช้อน','ส้อม','ชาม','แก้ว','ฟิล์ม','wrap','container','บรรจุ','น้ำดื่ม','น้ำอัดลม','เยลลี่']},
+    {cats:['สาธารณูปโภค'],kw:['แก๊ส','ไฟ','น้ำประปา','gas','lpg']},
+    {cats:['ค่าเช่า'],kw:['ค่าเช่า','เช่า','rent']},
+    {cats:['อุปกรณ์/ของใช้'],kw:['กระทะ','หม้อ','มีด','เขียง','ตะหลิว','ที่คีบ','ผ้า','ถุงมือ','ฟองน้ำ','น้ำยา','ไม้','ปั๊ม','ตะกร้า']},
+    {cats:['การตลาด/โฆษณา'],kw:['ไวนิล','ป้าย','sticker','สติ๊กเกอร์','โฆษณา','ads','ธง']},
+    {cats:['ส่วนลด'],kw:['point','ส่วนลด','discount','คืน','cashback']},
+  ];
+  for(const rule of rules){
+    if(rule.kw.some(k=>il.includes(k))) matches.push(...rule.cats);
+  }
+  // also match from existing expenses with same item
+  const hist=allExpenses.filter(e=>e.item&&e.item.toLowerCase().includes(il)&&e.category);
+  hist.forEach(e=>{if(!matches.includes(e.category))matches.unshift(e.category);});
+
+  const unique=[...new Set(matches)].slice(0,3);
+  if(!unique.length){suggest.style.display='none';return;}
+  suggest.innerHTML=unique.map(c=>{
+    const cat=EXP_CATS.find(x=>x.key===c);
+    return`<span class="cat-suggest-chip" onclick="applyCatSuggest('${c}')">${cat?.icon||''} ${c}</span>`;
+  }).join('');
+  suggest.style.display='flex';
+}
+
+function applyCatSuggest(cat){
+  const btn=document.querySelector(`#exp-cat-pills .cat-pill[onclick*="'${cat}'"]`);
+  if(btn) selectExpCat(cat,btn,EXP_CATS.find(c=>c.key===cat)?.color||'#888');
+  document.getElementById('cat-suggest').style.display='none';
+}
+
+// ── RECENT HISTORY ────────────────────────────────────────
+function renderRecentExpenses(){
+  const recent=allExpenses.slice(0,8);
+  const panel=document.getElementById('recent-panel');
+  const list=document.getElementById('recent-list');
+  if(!recent.length){panel.style.display='none';return;}
+  panel.style.display='block';
+  list.innerHTML=recent.map((e,i)=>{
+    const cat=EXP_CATS.find(c=>c.key===e.category);
+    const meta=[e.vendor,e.quantity?`${e.quantity}${e.unit||''}`:null,e.date].filter(Boolean).join(' · ');
+    return`<div class="recent-item" onclick="copyExpense(${i})">
+      <div class="recent-info">
+        <div class="recent-name">${e.item||'-'}</div>
+        <div class="recent-meta"><span style="color:${cat?.color||'#888'}">${cat?.icon||''} ${e.category||''}</span> · ${meta}</div>
+      </div>
+      <div class="recent-amt">-฿${fmt(e.amount)}</div>
+      <div class="recent-copy">copy</div>
+    </div>`;
+  }).join('');
+}
+
+function copyExpense(idx){
+  const e=allExpenses[idx];
+  if(!e) return;
+  // fill form
+  document.getElementById('exp-item').value=e.item||'';
+  document.getElementById('exp-amount-input').value=e.amount||'';
+  document.getElementById('exp-amount').value=e.amount||'';
+  document.getElementById('exp-qty').value=e.quantity||'';
+  document.getElementById('exp-unit').value=e.unit||'';
+  document.getElementById('exp-vendor').value=e.vendor||'';
+  document.getElementById('exp-date').value=todayStr;
+  if(e.payment_method) document.getElementById('exp-payment').value=e.payment_method;
+  // select category
+  if(e.category){
+    const cat=EXP_CATS.find(c=>c.key===e.category);
+    const btn=document.querySelector(`#exp-cat-pills .cat-pill[onclick*="'${e.category}'"]`);
+    if(btn&&cat) selectExpCat(e.category,btn,cat.color);
+  }
+  calcPpu();
+  showToast('✅ Copy แล้ว — ตรวจสอบก่อนบันทึก');
+  // scroll to form
+  document.getElementById('exp-date').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
 // ── SUBMIT EXPENSE ────────────────────────────────────────
 async function submitExpense(){
   const item=document.getElementById('exp-item').value.trim();
-  const amount=parseFloat(document.getElementById('exp-amount').value)||0;
+  const amountRaw=parseFloat(document.getElementById('exp-amount-input').value)||0;
+  const disc=parseFloat(document.getElementById('exp-discount').value)||0;
+  const amount=Math.max(0,amountRaw-disc)||amountRaw;
   if(!item){showToast('กรุณาใส่ชื่อรายการ','err');return;}
   if(!selectedExpCat){showToast('กรุณาเลือกหมวดหมู่','err');return;}
   if(amount<=0){showToast('กรุณาใส่ยอดเงิน','err');return;}
 
+  const qty=parseFloat(document.getElementById('exp-qty').value)||null;
+  const unit=document.getElementById('exp-unit').value||null;
+  const ppu=qty&&amount?Math.round((amount/qty)*100)/100:null;
+
   const row={
     date:document.getElementById('exp-date').value||todayStr,
-    item:item,
-    category:selectedExpCat,
-    quantity:parseFloat(document.getElementById('exp-qty').value)||null,
-    unit:document.getElementById('exp-unit').value||null,
-    price_per_unit:parseFloat(document.getElementById('exp-ppu').value)||null,
-    amount:amount,
+    item,category:selectedExpCat,
+    quantity:qty,unit,price_per_unit:ppu,
+    amount,
     vendor:document.getElementById('exp-vendor').value.trim()||null,
     payment_method:document.getElementById('exp-payment').value||null,
     note:document.getElementById('exp-note').value.trim()||null,
@@ -816,15 +947,18 @@ async function submitExpense(){
     if(row.vendor&&!vendorHistory.includes(row.vendor)) vendorHistory.push(row.vendor);
     showToast('✅ บันทึกแล้ว');
     resetExpForm();
+    renderRecentExpenses();
   }catch(e){showToast('❌ '+e.message,'err');}
 }
 
 function resetExpForm(){
-  ['exp-item','exp-qty','exp-ppu','exp-unit','exp-discount','exp-vendor','exp-note'].forEach(id=>document.getElementById(id).value='');
+  ['exp-item','exp-qty','exp-unit','exp-discount','exp-vendor','exp-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('exp-amount-input').value='';
   document.getElementById('exp-date').value=todayStr;
   document.getElementById('exp-payment').value='';
   document.getElementById('exp-amount').value='';
-  document.getElementById('exp-amount-display').textContent='฿0';
+  document.getElementById('ppu-display').style.display='none';
+  document.getElementById('cat-suggest').style.display='none';
   document.querySelectorAll('#exp-cat-pills .cat-pill').forEach(b=>{b.classList.remove('active');b.style.background='';b.style.color='';});
   document.querySelectorAll('.unit-pill').forEach(b=>b.classList.remove('active'));
   document.getElementById('warn-item').style.display='none';
