@@ -323,6 +323,8 @@
       <div class="card-list" id="ov-platform"></div>
       <div class="sec">🏆 เมนูขายดี Top 10</div>
       <div class="card-list" id="ov-menu"></div>
+      <div class="sec">⚙️ Add-on / Modifier ยอดนิยม</div>
+      <div class="card-list" id="ov-modifiers"></div>
       <div class="sec">📂 แยกหมวดหมู่</div>
       <div class="clist" id="ov-cat"></div>
       <div class="sec">📅 ประวัติรายวัน</div>
@@ -358,6 +360,7 @@
         <div class="scard"><div class="scard-lbl">จำนวนบิล</div><div class="scard-val" id="trend-cnt">0</div></div>
         <div class="scard"><div class="scard-lbl">บิลสูงสุด</div><div class="scard-val" id="trend-max">—</div></div>
       </div>
+      <div class="card-list" id="trend-mom" style="margin-bottom:14px"></div>
       <div class="chart-box" style="height:200px"><canvas id="trend-chart"></canvas></div>
       <div class="card-list" id="trend-table" style="margin-top:14px;margin-bottom:0"></div>
       <div class="sec">📡 Platform แยกช่วง</div>
@@ -1285,17 +1288,14 @@ function setOvPeriod(p,btn){
   btn.classList.add('active');renderOverview();
 }
 function renderOverview(){
-  // ยอดเงิน/trend/platform → allOrders (รวม historical)
   const orders=filterByPeriod(allOrders,ovPeriod);
-  // เมนู/หมวด → realOrders เท่านั้น (มี items จริง)
   const real=filterByPeriod(realOrders,ovPeriod);
   const s=computeFrom(real);
   const sAll=computeFrom(orders);
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  // เฉลี่ยต่อบิล = realOrders ในช่วงเดียวกัน (ไม่ใช่ทั้งหมด)
-  const realCnt=real.length;
-  const realTotal=real.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  const avg=realCnt?Math.round(realTotal/realCnt):0;
+  // เฉลี่ยต่อบิล = allOrders ในช่วงนั้น (รวม historical ด้วย มีข้อมูลมากกว่า)
+  const allCnt=orders.length;
+  const avg=allCnt?Math.round(total/allCnt):0;
   document.getElementById('ov-rev').textContent='฿'+fmt(total);
   document.getElementById('ov-cnt').textContent=fmt(orders.length)+' ออเดอร์';
   document.getElementById('ov-avg').textContent=avg?'฿'+fmt(avg):'—';
@@ -1305,6 +1305,8 @@ function renderOverview(){
   const top=Object.entries(s.menuCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const maxQ=top[0]?.[1]||1;
   document.getElementById('ov-menu').innerHTML=top.length?top.map(([n,q],i)=>rankRow(i,n,q,s.menuRev[n]||0,maxQ)).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
+  // modifiers
+  renderModifiers('ov-modifiers',real);
   const cats=Object.entries(s.catRev).sort((a,b)=>b[1]-a[1]);
   const maxC=cats[0]?.[1]||1;
   document.getElementById('ov-cat').innerHTML=cats.length?cats.map(([c,r])=>`<div class="ccard"><div class="crow"><span class="cname">${c}</span><span class="cval">฿${fmt(r)}</span></div><div class="cbar-w"><div class="cbar" style="width:${Math.round(r/maxC*100)}%"></div></div><div class="csub">${s.catCnt[c]} รายการ</div></div>`).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
@@ -1332,6 +1334,35 @@ function renderToday(){
   document.getElementById('td-list').innerHTML=sorted.length?sorted.map(([n,d])=>{const mods=Object.entries(d.mods).map(([m,q])=>`⚙️ ${m} ×${q}`).join('  ');return`<div class="titem"><div class="tmain"><span class="tname">${n}</span><span class="tqty">×${d.qty}</span></div>${mods?`<div class="tmod">${mods}</div>`:''}</div>`;}).join(''):'<div class="empty">ยังไม่มีออเดอร์วันนี้</div>';
 }
 
+// ── MODIFIERS ─────────────────────────────────────────────
+function renderModifiers(elId,orders){
+  const modCount={};
+  orders.forEach(r=>{
+    let items=r.items;if(!items)return;
+    if(typeof items==='string'){try{items=JSON.parse(items);}catch{return;}}
+    if(!Array.isArray(items))return;
+    items.forEach(item=>{
+      const mod=item.selectedModifier?.name||item.modifier?.name||item.modifierName||null;
+      if(mod){modCount[mod]=(modCount[mod]||0)+(Number(item.qty)||1);}
+      // some platforms store multiple modifiers as array
+      if(Array.isArray(item.modifiers)){
+        item.modifiers.forEach(m=>{const mn=m.name||m;if(mn)modCount[mn]=(modCount[mn]||0)+(Number(item.qty)||1);});
+      }
+    });
+  });
+  const top=Object.entries(modCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxM=top[0]?.[1]||1;
+  document.getElementById(elId).innerHTML=top.length
+    ?top.map(([m,q],i)=>`<div class="list-row">
+        <div class="rno ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
+        <div class="rinfo"><div class="rname">${m}</div>
+          <div class="rbar-w"><div class="rbar" style="width:${Math.round(q/maxM*100)}%;background:#4D96FF"></div></div>
+        </div>
+        <div class="rright"><div class="rqty" style="color:#4D96FF">${fmt(q)} ครั้ง</div></div>
+      </div>`).join('')
+    :'<div class="empty">ยังไม่มีข้อมูล modifier</div>';
+}
+
 // ── TREND ─────────────────────────────────────────────────
 function setTrendPeriod(p,btn){trendPeriod=p;document.querySelectorAll('#page-trend>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTrend();}
 function renderTrend(){
@@ -1347,6 +1378,51 @@ function renderTrend(){
   document.getElementById('trend-avg').textContent=avg?'฿'+fmt(avg):'—';
   document.getElementById('trend-cnt').textContent=fmt(orders.length)+' บิล';
   document.getElementById('trend-max').textContent=maxBill?'฿'+fmt(maxBill):'—';
+
+  // ── MoM / Period-over-Period ──
+  const momEl=document.getElementById('trend-mom');
+  const now=new Date();
+  let prevOrders=[];let prevLabel='';let curLabel='';
+  if(trendPeriod==='7d'){
+    const d1=new Date(now);d1.setDate(d1.getDate()-14);
+    const d2=new Date(now);d2.setDate(d2.getDate()-7);
+    prevOrders=allOrders.filter(r=>{const d=new Date(r.created_at);return d>=d1&&d<d2;});
+    prevLabel='7 วันก่อนหน้า';curLabel='7 วันนี้';
+  }else if(trendPeriod==='30d'){
+    const d1=new Date(now.getFullYear(),now.getMonth()-1,1);
+    const d2=new Date(now.getFullYear(),now.getMonth(),1);
+    prevOrders=allOrders.filter(r=>{const d=new Date(r.created_at);return d>=d1&&d<d2;});
+    prevLabel='เดือนที่แล้ว';curLabel='เดือนนี้';
+  }else if(trendPeriod==='1y'){
+    const d1=new Date(now.getFullYear()-1,0,1);
+    const d2=new Date(now.getFullYear(),0,1);
+    prevOrders=allOrders.filter(r=>{const d=new Date(r.created_at);return d>=d1&&d<d2;});
+    prevLabel='ปีที่แล้ว';curLabel='ปีนี้';
+  }
+  if(prevOrders.length){
+    const prevTotal=prevOrders.reduce((s,r)=>s+(r.actual_amount||0),0);
+    const prevAvg=prevOrders.length?Math.round(prevTotal/prevOrders.length):0;
+    const diff=total-prevTotal;const pct=prevTotal>0?Math.round((diff/prevTotal)*100):0;
+    const avgDiff=avg-prevAvg;const avgPct=prevAvg>0?Math.round((avgDiff/prevAvg)*100):0;
+    const arrow=diff>=0?'▲':'▼';const color=diff>=0?'var(--success)':'var(--danger)';
+    const avgArrow=avgDiff>=0?'▲':'▼';const avgColor=avgDiff>=0?'var(--success)':'var(--danger)';
+    momEl.innerHTML=`
+      <div class="list-row" style="flex-wrap:wrap;gap:4px">
+        <div style="font-size:12px;color:var(--dim);width:100%;margin-bottom:4px">📊 เทียบกับ${prevLabel}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:var(--dim)">ยอดรวม</div>
+          <div style="font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:${color}">${arrow} ${Math.abs(pct)}% <span style="font-size:11px;font-weight:400">(${diff>=0?'+':''}฿${fmt(Math.abs(diff))})</span></div>
+          <div style="font-size:10px;color:var(--dim)">${prevLabel} ฿${fmt(prevTotal)}</div>
+        </div>
+        <div style="flex:1;min-width:0;border-left:1px solid var(--border2);padding-left:14px">
+          <div style="font-size:11px;color:var(--dim)">เฉลี่ย/บิล</div>
+          <div style="font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:${avgColor}">${avgArrow} ${Math.abs(avgPct)}% <span style="font-size:11px;font-weight:400">(${avgDiff>=0?'+':''}฿${fmt(Math.abs(avgDiff))})</span></div>
+          <div style="font-size:10px;color:var(--dim)">${prevLabel} ฿${fmt(prevAvg)}</div>
+        </div>
+      </div>`;
+  }else{
+    momEl.innerHTML='';
+  }
   const sorted=Object.keys(s.dailyMap).sort();
   let labels,values,tableRows;
   if(trendPeriod==='1y'){
