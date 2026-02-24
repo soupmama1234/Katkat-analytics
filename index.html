@@ -416,7 +416,8 @@
       <div id="exp-analysis" style="display:none">
         <div class="pills" style="margin-bottom:12px">
           <button class="pill active" onclick="setExpAnaPeriod('30d',this)">เดือนนี้</button>
-          <button class="pill" onclick="setExpAnaPeriod('7d',this)">7 วัน</button>
+          <button class="pill" onclick="setExpAnaPeriod('6m',this)">6 เดือน</button>
+          <button class="pill" onclick="setExpAnaPeriod('1y',this)">1 ปี</button>
           <button class="pill" onclick="setExpAnaPeriod('all',this)">ทั้งหมด</button>
         </div>
         <div id="profit-card-wrap"></div>
@@ -424,13 +425,15 @@
           <div class="scard"><div class="scard-lbl">ยอดขาย</div><div class="scard-val green" id="ana-rev">฿0</div></div>
           <div class="scard"><div class="scard-lbl">ค่าใช้จ่าย</div><div class="scard-val red" id="ana-exp">฿0</div></div>
           <div class="scard"><div class="scard-lbl">รายได้อื่น</div><div class="scard-val green" id="ana-inc">฿0</div></div>
-          <div class="scard"><div class="scard-lbl">ส่วนลดรับ</div><div class="scard-val green" id="ana-disc">฿0</div></div>
+          <div class="scard"><div class="scard-lbl">Gross Margin</div><div class="scard-val" id="ana-margin">0%</div></div>
         </div>
+        <div class="sec">📈 รายรับ vs ต้นทุน รายเดือน</div>
+        <div class="chart-box" style="height:220px"><canvas id="ana-chart"></canvas></div>
         <div class="sec">ต้นทุนแยกหมวด</div>
         <div class="clist" id="ana-cat"></div>
-        <div class="sec">รายการซื้อบ่อย (ราคาต่อหน่วย)</div>
+        <div class="sec">📦 สินค้าที่ราคาเปลี่ยนแปลง</div>
         <div class="card-list" id="ana-price-trend"></div>
-        <div class="sec">Vendor ที่ใช้บ่อย</div>
+        <div class="sec">🏪 Vendor ที่ใช้จ่ายมากสุด</div>
         <div class="card-list" id="ana-vendor"></div>
       </div>
 
@@ -541,10 +544,11 @@ const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb=supabase.createClient(SB_URL,SB_KEY);
 
 // ── STATE ─────────────────────────────────────────────────
-let allOrders=[],catMap={},allExpenses=[],allIncome=[];
+// allOrders = ทุก orders, realOrders = บิลจริง (is_history!=true), histOrders = historical aggregate
+let allOrders=[],realOrders=[],histOrders=[],catMap={},allExpenses=[],allIncome=[];
 let ovPeriod='all',trendPeriod='7d',peakScope='all';
 let expListPeriod='today',expAnaPeriod='30d';
-let trendChart=null,peakChart=null,wdChart=null;
+let trendChart=null,peakChart=null,wdChart=null,anaChart=null;
 const fmt=n=>(n||0).toLocaleString('th-TH');
 const todayStr=new Date().toLocaleDateString('en-CA');
 const CH_COLOR={pos:'#ffffff',grab:'#00B14F',lineman:'#00A84F',shopee:'#EE4D2D'};
@@ -584,6 +588,9 @@ async function init(){
     if(oR.error) throw oR.error;
     catMap={};(pR.data||[]).forEach(p=>{catMap[p.name]=p.category||'ทั่วไป';});
     allOrders=oR.data||[];
+    // แยก historical (is_history=true) ออกจาก real orders
+    realOrders=allOrders.filter(r=>!r.is_history);
+    histOrders=allOrders.filter(r=>r.is_history);
     allExpenses=eR.data||[];
     allIncome=iR.data||[];
 
@@ -861,76 +868,138 @@ function renderIncList(){
 
 // ── RENDER EXPENSE ANALYSIS ───────────────────────────────
 function renderExpAnalysis(){
+  // map period → filter key
+  const ordPeriod={
+    '30d':'month','6m':'6m','1y':'1y','all':'all'
+  }[expAnaPeriod]||'all';
+
   const expFiltered=filterExpByPeriod(allExpenses,expAnaPeriod);
-  const ordFiltered=filterByPeriod(allOrders,expAnaPeriod==='30d'?'month':expAnaPeriod==='7d'?'7d':'all');
+  const ordFiltered=filterByPeriod(allOrders,ordPeriod);
   const incFiltered=filterExpByPeriod(allIncome,expAnaPeriod);
 
   const totalRev=ordFiltered.reduce((s,r)=>s+(r.actual_amount||0),0);
-  const totalExp=expFiltered.reduce((s,e)=>s+(e.amount||0),0);
+  const totalExp=expFiltered.filter(e=>e.category!=='ส่วนลด').reduce((s,e)=>s+(e.amount||0),0);
+  const totalDisc=expFiltered.filter(e=>e.category==='ส่วนลด').reduce((s,e)=>s+(e.amount||0),0);
   const totalInc=incFiltered.reduce((s,i)=>s+(i.amount||0),0);
-  const totalDisc=expFiltered.reduce((s,e)=>s+(e.discount||0),0);
-  const profit=totalRev+totalInc-totalExp;
+  const profit=totalRev+totalInc+totalDisc-totalExp;
+  const margin=totalRev>0?Math.round((profit/totalRev)*100):0;
 
   // profit card
   const pc=document.getElementById('profit-card-wrap');
   pc.innerHTML=`<div class="profit-card ${profit>=0?'positive':'negative'}">
     <div class="profit-lbl">กำไรประมาณการ</div>
     <div class="profit-val ${profit>=0?'positive':'negative'}">${profit>=0?'':'-'}฿${fmt(Math.abs(profit))}</div>
-    <div class="profit-sub">ยอดขาย + รายได้อื่น − ค่าใช้จ่าย</div>
+    <div class="profit-sub">ยอดขาย + รายได้อื่น + ส่วนลด − ค่าใช้จ่าย</div>
   </div>`;
 
   document.getElementById('ana-rev').textContent='฿'+fmt(totalRev);
   document.getElementById('ana-exp').textContent='฿'+fmt(totalExp);
-  document.getElementById('ana-inc').textContent='฿'+fmt(totalInc);
-  document.getElementById('ana-disc').textContent='฿'+fmt(totalDisc);
+  document.getElementById('ana-inc').textContent='฿'+fmt(totalInc+totalDisc);
+  document.getElementById('ana-margin').textContent=margin+'%';
+  document.getElementById('ana-margin').style.color=margin>=0?'var(--success)':'var(--danger)';
 
-  // หมวดหมู่ต้นทุน
+  // ── MONTHLY CHART รายรับ vs ต้นทุน ──
+  // build monthly maps
+  const revByMonth={};
+  ordFiltered.forEach(r=>{
+    const m=(r.created_at||'').slice(0,7);
+    if(m) revByMonth[m]=(revByMonth[m]||0)+(r.actual_amount||0);
+  });
+  const expByMonth={};
+  expFiltered.filter(e=>e.category!=='ส่วนลด').forEach(e=>{
+    const m=(e.date||'').slice(0,7);
+    if(m) expByMonth[m]=(expByMonth[m]||0)+(e.amount||0);
+  });
+
+  // union of all months, sorted
+  const allMonths=[...new Set([...Object.keys(revByMonth),...Object.keys(expByMonth)])].sort();
+  // limit months shown based on period
+  const maxMonths={all:999,'1y':12,'6m':6,'30d':1}[expAnaPeriod]||999;
+  const months=allMonths.slice(-maxMonths);
+
+  const mLabels=months.map(m=>{const[y,mo]=m.split('-');return new Date(+y,+mo-1).toLocaleDateString('th-TH',{month:'short',year:'2-digit'});});
+  const mRev=months.map(m=>Math.round(revByMonth[m]||0));
+  const mExp=months.map(m=>Math.round(expByMonth[m]||0));
+
+  if(anaChart)anaChart.destroy();
+  const ctx=document.getElementById('ana-chart').getContext('2d');
+  anaChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:mLabels,
+      datasets:[
+        {label:'รายรับ',data:mRev,backgroundColor:'rgba(50,215,75,0.7)',borderRadius:4,borderSkipped:false},
+        {label:'ต้นทุน',data:mExp,backgroundColor:'rgba(255,69,58,0.7)',borderRadius:4,borderSkipped:false},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#888',font:{size:11}}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#555',font:{size:10},maxRotation:45}},
+        y:{display:false,grid:{display:false}}
+      }
+    }
+  });
+
+  // ── หมวดหมู่ต้นทุน ──
   const catMap2={};
   expFiltered.forEach(e=>{const c=e.category||'อื่นๆ';catMap2[c]=(catMap2[c]||0)+(e.amount||0);});
   const cats=Object.entries(catMap2).sort((a,b)=>b[1]-a[1]);
   const maxC=cats[0]?.[1]||1;
   document.getElementById('ana-cat').innerHTML=cats.map(([c,v])=>{
     const cat=EXP_CATS.find(x=>x.key===c);
+    const pct=totalExp>0?Math.round(v/totalExp*100):0;
     return`<div class="ccard">
       <div class="crow"><span class="cname">${cat?.icon||''} ${c}</span><span class="cval" style="color:var(--danger)">฿${fmt(v)}</span></div>
       <div class="cbar-w"><div class="cbar" style="width:${Math.round(v/maxC*100)}%;background:${cat?.color||'#888'}"></div></div>
-      <div class="csub">${Math.round(v/totalExp*100)||0}% ของค่าใช้จ่ายทั้งหมด</div>
+      <div class="csub">${pct}% · ${expFiltered.filter(e=>e.category===c).length} รายการ</div>
     </div>`;
-  }).join('');
+  }).join('')||'<div class="empty">ยังไม่มีข้อมูล</div>';
 
-  // ราคาต่อหน่วยย้อนหลัง (top items ที่มีราคา)
+  // ── ราคาต่อหน่วยย้อนหลัง ──
   const itemPpu={};
-  expFiltered.filter(e=>e.item&&e.price_per_unit).forEach(e=>{
+  expFiltered.filter(e=>e.item&&e.price_per_unit&&e.unit).forEach(e=>{
     if(!itemPpu[e.item]) itemPpu[e.item]=[];
-    itemPpu[e.item].push({date:e.date,ppu:e.price_per_unit,unit:e.unit||''});
+    itemPpu[e.item].push({date:e.date,ppu:e.price_per_unit,unit:e.unit});
   });
-  const priceTrend=Object.entries(itemPpu).slice(0,8).map(([item,records])=>{
+  // เรียงตาม frequency แล้วกรองเฉพาะที่มี >= 2 ครั้ง
+  const priceItems=Object.entries(itemPpu)
+    .filter(([,r])=>r.length>=2)
+    .sort((a,b)=>b[1].length-a[1].length)
+    .slice(0,10);
+  document.getElementById('ana-price-trend').innerHTML=priceItems.map(([item,records])=>{
     records.sort((a,b)=>a.date.localeCompare(b.date));
     const first=records[0].ppu,last=records[records.length-1].ppu;
-    const diff=last-first;
+    const diff=last-first;const pctChg=first>0?Math.round((diff/first)*100):0;
     const arrow=diff>0?'🔺':diff<0?'🔻':'➡️';
+    const color=diff>0?'var(--danger)':diff<0?'var(--success)':'var(--dim)';
     return`<div class="list-row">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px">ครั้งล่าสุด: ฿${fmt(last)}/${records[records.length-1].unit}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">ล่าสุด ฿${last.toFixed(1)}/${records[records.length-1].unit} · ${records.length} ครั้ง</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
-        <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:${diff>0?'var(--danger)':diff<0?'var(--success)':'var(--dim)'}">${arrow} ${Math.abs(diff).toFixed(1)}</div>
-        <div style="font-size:10px;color:var(--dim)">${records.length} ครั้ง</div>
+        <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:${color}">${arrow} ${Math.abs(pctChg)}%</div>
+        <div style="font-size:10px;color:var(--dim)">฿${first.toFixed(1)} → ฿${last.toFixed(1)}</div>
       </div>
     </div>`;
-  }).join('');
-  document.getElementById('ana-price-trend').innerHTML=priceTrend||'<div class="empty">ยังไม่มีข้อมูล</div>';
+  }).join('')||'<div class="empty">ต้องมีข้อมูล ≥ 2 ครั้งต่อรายการ</div>';
 
-  // vendor
+  // ── Vendor ──
   const vendorMap={};
-  expFiltered.forEach(e=>{if(e.vendor){vendorMap[e.vendor]=(vendorMap[e.vendor]||{cnt:0,total:0});vendorMap[e.vendor].cnt++;vendorMap[e.vendor].total+=e.amount||0;}});
+  expFiltered.forEach(e=>{
+    if(!e.vendor) return;
+    if(!vendorMap[e.vendor]) vendorMap[e.vendor]={cnt:0,total:0};
+    vendorMap[e.vendor].cnt++;
+    vendorMap[e.vendor].total+=e.amount||0;
+  });
   const vendors=Object.entries(vendorMap).sort((a,b)=>b[1].total-a[1].total).slice(0,6);
   const maxV=vendors[0]?.[1].total||1;
   document.getElementById('ana-vendor').innerHTML=vendors.map(([v,d])=>`
     <div class="list-row">
-      <div style="font-size:13px;font-weight:600;flex:1">${v}</div>
-      <div style="flex:2;padding:0 12px">
+      <div style="font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v}</div>
+      <div style="flex:2;padding:0 10px">
         <div class="bar-w"><div class="bar-f" style="width:${Math.round(d.total/maxV*100)}%;background:var(--primary)"></div></div>
       </div>
       <div style="text-align:right;flex-shrink:0">
@@ -946,6 +1015,8 @@ function filterByPeriod(orders,period){
   if(period==='today') return orders.filter(r=>(r.created_at||'').startsWith(todayStr));
   if(period==='7d'){const d=new Date(now);d.setDate(d.getDate()-7);return orders.filter(r=>new Date(r.created_at)>=d);}
   if(period==='30d'||period==='month'){const d=new Date(now.getFullYear(),now.getMonth(),1);return orders.filter(r=>new Date(r.created_at)>=d);}
+  if(period==='6m'){const d=new Date(now);d.setMonth(d.getMonth()-6);return orders.filter(r=>new Date(r.created_at)>=d);}
+  if(period==='1y'){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return orders.filter(r=>new Date(r.created_at)>=d);}
   if(period==='week'){const d=new Date(now);const day=d.getDay();const diff=day===0?-6:1-day;d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return orders.filter(r=>new Date(r.created_at)>=d);}
   return orders;
 }
@@ -954,6 +1025,8 @@ function filterExpByPeriod(rows,period){
   if(period==='today') return rows.filter(r=>r.date===todayStr);
   if(period==='7d'){const d=new Date(now);d.setDate(d.getDate()-7);return rows.filter(r=>r.date&&r.date>=d.toLocaleDateString('en-CA'));}
   if(period==='30d'){const d=new Date(now.getFullYear(),now.getMonth(),1).toLocaleDateString('en-CA');return rows.filter(r=>r.date&&r.date>=d);}
+  if(period==='6m'){const d=new Date(now);d.setMonth(d.getMonth()-6);return rows.filter(r=>r.date&&r.date>=d.toLocaleDateString('en-CA'));}
+  if(period==='1y'){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return rows.filter(r=>r.date&&r.date>=d.toLocaleDateString('en-CA'));}
   return rows;
 }
 function periodLabel(p){return{all:'ทั้งหมด',today:'วันนี้','7d':'7 วันล่าสุด','30d':'30 วันล่าสุด',week:'สัปดาห์นี้',month:'เดือนนี้'}[p]||'ทั้งหมด';}
@@ -995,28 +1068,34 @@ function setOvPeriod(p,btn){
   btn.classList.add('active');renderOverview();
 }
 function renderOverview(){
+  // ยอดเงิน/trend/platform → allOrders (รวม historical)
   const orders=filterByPeriod(allOrders,ovPeriod);
-  const s=computeFrom(orders);
+  // เมนู/หมวด/เฉลี่ยต่อบิล → realOrders เท่านั้น (มี items จริง)
+  const real=filterByPeriod(realOrders,ovPeriod);
+  const s=computeFrom(real);
+  const sAll=computeFrom(orders);
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  const cnt=orders.length;
+  const realCnt=real.length;
+  const realTotal=real.reduce((sum,r)=>sum+(r.actual_amount||0),0);
   document.getElementById('ov-rev').textContent='฿'+fmt(total);
-  document.getElementById('ov-cnt').textContent=fmt(cnt)+' ออเดอร์';
-  document.getElementById('ov-avg').textContent='฿'+fmt(Math.round(cnt?total/cnt:0));
-  document.getElementById('ov-today').textContent='฿'+fmt(s.dailyMap[todayStr]||0);
+  document.getElementById('ov-cnt').textContent=fmt(orders.length)+' ออเดอร์';
+  document.getElementById('ov-avg').textContent='฿'+fmt(Math.round(realCnt?realTotal/realCnt:0));
+  document.getElementById('ov-today').textContent='฿'+fmt(computeFrom(filterByPeriod(allOrders,'today')).dailyMap[todayStr]||0);
   document.getElementById('ov-range-lbl').textContent=periodLabel(ovPeriod);
-  renderPlatformBars('ov-platform',s.platformRev,s.platformCnt,total);
+  renderPlatformBars('ov-platform',sAll.platformRev,sAll.platformCnt,total);
   const top=Object.entries(s.menuCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const maxQ=top[0]?.[1]||1;
   document.getElementById('ov-menu').innerHTML=top.length?top.map(([n,q],i)=>rankRow(i,n,q,s.menuRev[n]||0,maxQ)).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
   const cats=Object.entries(s.catRev).sort((a,b)=>b[1]-a[1]);
   const maxC=cats[0]?.[1]||1;
   document.getElementById('ov-cat').innerHTML=cats.length?cats.map(([c,r])=>`<div class="ccard"><div class="crow"><span class="cname">${c}</span><span class="cval">฿${fmt(r)}</span></div><div class="cbar-w"><div class="cbar" style="width:${Math.round(r/maxC*100)}%"></div></div><div class="csub">${s.catCnt[c]} รายการ</div></div>`).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
-  document.getElementById('ov-daily').innerHTML=Object.entries(s.dailyMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).map(([d,v])=>`<div class="list-row"><span class="ddate">${new Date(d).toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</span><span class="dval">฿${fmt(v)}</span></div>`).join('');
+  document.getElementById('ov-daily').innerHTML=Object.entries(sAll.dailyMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).map(([d,v])=>`<div class="list-row"><span class="ddate">${new Date(d).toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</span><span class="dval">฿${fmt(v)}</span></div>`).join('');
 }
 
 // ── TODAY ─────────────────────────────────────────────────
 function renderToday(){
-  const orders=filterByPeriod(allOrders,'today');
+  // วันนี้ใช้ realOrders เท่านั้น — historical data ไม่มี items และ timestamp ไม่แม่นยำระดับชั่วโมง
+  const orders=filterByPeriod(realOrders,'today');
   const rev=orders.reduce((s,r)=>s+(r.actual_amount||0),0);
   const cnt=orders.length;
   const menuT={};let totalItems=0;
@@ -1065,7 +1144,8 @@ function renderTrend(){
 // ── PEAK ─────────────────────────────────────────────────
 function setPeakScope(p,btn){peakScope=p;document.querySelectorAll('#page-peak>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPeak();}
 function renderPeak(){
-  const orders=filterByPeriod(allOrders,peakScope);
+  // Peak hours ใช้ realOrders — historical ทุกอันถูก set เป็น 12:00 ทำให้ hour chart เพี้ยน
+  const orders=filterByPeriod(realOrders,peakScope);
   const s=computeFrom(orders);
   const active=s.byHour.filter(h=>h.orders>0);
   const maxO=Math.max(...active.map(h=>h.orders),1);
