@@ -1305,96 +1305,95 @@ document.addEventListener('click',e=>{
 });
 
 // ── OCR ───────────────────────────────────────────────────
-const GEMINI_MODEL='gemini-2.0-flash';
-let geminiKey='';
+// 1. ตั้งค่าพื้นฐาน (ใช้ชื่อตัวแปรที่ในไฟล์คุณมี)
+const GEMINI_MODEL = 'gemini-2.5-flash'; 
+let geminiKey = '';
 
-function initApiKey(){
-  geminiKey=localStorage.getItem('gemini_api_key')||'';
-  if(!geminiKey){
-    document.getElementById('apikey-wrap').classList.add('show');
-    document.getElementById('ocr-btn').style.opacity='0.4';
-    document.getElementById('ocr-btn').style.pointerEvents='none';
+// 2. ฟังก์ชันจัดการ API Key
+function initApiKey() {
+  geminiKey = localStorage.getItem('gemini_api_key') || '';
+  if (!geminiKey) {
+    const wrap = document.getElementById('apikey-wrap');
+    if(wrap) wrap.classList.add('show');
+    const btn = document.getElementById('ocr-btn');
+    if(btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
   }
 }
 
-function saveApiKey(){
-  const k=document.getElementById('apikey-input').value.trim();
-  if(!k){showToast('ใส่ API key ก่อนครับ','err');return;}
-  localStorage.setItem('gemini_api_key',k);
-  geminiKey=k;
+function saveApiKey() {
+  const input = document.getElementById('apikey-input');
+  const k = input ? input.value.trim() : '';
+  if (!k) { alert('ใส่ API key ก่อนครับ'); return; }
+  localStorage.setItem('gemini_api_key', k);
+  geminiKey = k;
   document.getElementById('apikey-wrap').classList.remove('show');
-  document.getElementById('ocr-btn').style.opacity='';
-  document.getElementById('ocr-btn').style.pointerEvents='';
-  showToast('✅ บันทึก API key แล้ว');
+  const ocrBtn = document.getElementById('ocr-btn');
+  if(ocrBtn) { ocrBtn.style.opacity = ''; ocrBtn.style.pointerEvents = ''; }
+  alert('✅ บันทึก API key แล้ว');
 }
 
-async function handleOcrImage(input){
-  if(!input.files||!input.files[0]) return;
-  const file=input.files[0];
+// 3. ฟังก์ชันหลัก (ยุบรวมที่พังๆ ให้เหลืออันเดียวที่ทำงานได้)
+async function handleOcrImage(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
 
-  // show preview
-  const preview=document.getElementById('ocr-preview');
-  preview.src=URL.createObjectURL(file);
-  preview.style.display='block';
+  // UI: แสดงรูปที่เลือก
+  const preview = document.getElementById('ocr-preview');
+  if(preview) {
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  }
 
-  // loading state
-  const btn=document.getElementById('ocr-btn');
-  btn.classList.add('loading');
-  btn.innerHTML='<span style="font-size:18px">⏳</span> กำลังอ่านใบเสร็จ...';
-  document.getElementById('ocr-result').style.display='none';
+  // UI: สถานะกำลังโหลด
+  const btn = document.getElementById('ocr-btn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ กำลังอ่านใบเสร็จ...';
 
-  try{
-    // convert to base64
-    const b64=await new Promise((res,rej)=>{
-      const r=new FileReader();
-      r.onload=()=>res(r.result.split(',')[1]);
-      r.onerror=rej;
+  try {
+    // แปลงไฟล์เป็น Base64
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
       r.readAsDataURL(file);
     });
 
-    const prompt=`อ่านใบเสร็จนี้แล้ว return JSON array เท่านั้น ไม่ต้องมีข้อความอื่น
-format: [{"item":"ชื่อสินค้า","quantity":จำนวน,"unit":"หน่วย","amount":ราคารวม,"vendor":"ชื่อร้าน","date":"YYYY-MM-DD"}]
-- item: ชื่อสินค้า ภาษาไทยหรืออังกฤษตามใบเสร็จ
-- quantity: น้ำหนักหรือจำนวน (ตัวเลข)
-- unit: kg/g/ชิ้น/แพ็ค ฯลฯ
-- amount: ราคารวมของสินค้านั้น (ตัวเลข ไม่มี ฿)
-- vendor: ชื่อร้าน/ซุปเปอร์มาร์เก็ต
-- date: วันที่ในใบเสร็จ format YYYY-MM-DD ถ้าไม่มีใส่ null
-ถ้าอ่านไม่ออกหรือไม่ใช่ใบเสร็จให้ return []`;
+    const prompt = "อ่านใบเสร็จนี้แล้ว return JSON array เท่านั้น ห้ามมีข้อความอื่น format: [{\"item\":\"ชื่อสินค้า\",\"quantity\":จำนวน,\"unit\":\"หน่วย\",\"amount\":ราคารวม,\"vendor\":\"ชื่อร้าน\",\"date\":\"YYYY-MM-DD\"}]";
 
-    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[
-          {inline_data:{mime_type:file.type,data:b64}},
-          {text:prompt}
-        ]}],
-        generationConfig:{temperature:0.1,maxOutputTokens:2048}
+    // ยิง API
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ inline_data: { mime_type: file.type, data: b64 } }, { text: prompt }] }]
       })
     });
 
-    if(!resp.ok){
-      const err=await resp.json();
-      const msg=err.error?.message||JSON.stringify(err);
-      throw new Error(`${resp.status}: ${msg}`);
+    const result = await resp.json();
+    
+    // ดัก Error จาก API
+    if (!resp.ok) throw new Error(result.error?.message || 'API พัง');
+
+    // แกะข้อความ JSON (ลบพวก ```json ออก)
+    let rawText = result.candidates[0].content.parts[0].text;
+    let cleanText = rawText.replace(/```json|```/g, "").trim();
+    
+    const items = JSON.parse(cleanText);
+
+    if (items && items.length > 0) {
+      // เรียกฟังก์ชันวาดตาราง (ที่มีอยู่แล้วในไฟล์คุณ)
+      renderOcrResult(items); 
+    } else {
+      alert('ไม่พบรายการสินค้า');
     }
 
-    const data=await resp.json();
-    const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
-    const clean=text.replace(/```json|```/g,'').trim();
-    const items=JSON.parse(clean);
-
-    if(!items.length){showToast('ไม่พบรายการในรูปนี้','err');return;}
-    renderOcrResult(items);
-
-  }catch(e){
-    showToast('❌ '+e.message,'err');
-    console.error(e);
-  }finally{
-    btn.classList.remove('loading');
-    btn.innerHTML='<span style="font-size:22px">📷</span> ถ่ายรูป / เลือกรูปใบเสร็จ';
-    input.value='';
+  } catch (err) {
+    console.error("พังตรงนี้:", err);
+    alert('❌ Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📷 ถ่ายรูป / เลือกรูปใบเสร็จ';
+    input.value = '';
   }
 }
 
