@@ -385,6 +385,7 @@
         <button class="pill" onclick="setPeakScope('month',this)">เดือนนี้</button>
       </div>
       <div class="chart-box" style="height:190px"><canvas id="peak-chart"></canvas></div>
+      <div id="peak-debug" style="margin-bottom:12px"></div>
       <div class="sec">อันดับชั่วโมง</div>
       <div class="card-list" id="peak-list"></div>
       <div class="sec">📆 วันในสัปดาห์</div>
@@ -1470,6 +1471,24 @@ function renderPeak(){
   const realOnly=filterByPeriod(nonHist,peakScope);
   const s=computeFrom(orders);
   const sReal=computeFrom(realOnly);
+
+  // ── DEBUG PANEL ──
+  const dbgEl=document.getElementById('peak-debug');
+  if(dbgEl){
+    const sample=nonHist.slice(0,3).map(r=>({
+      ca:r.created_at,
+      ih:r.is_history,
+      ch:r.channel,
+      amt:r.actual_amount
+    }));
+    const hourTotal=sReal.byHour.reduce((a,h)=>a+h.orders,0);
+    dbgEl.innerHTML=`
+      <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:10px;font-size:10px;font-family:monospace;color:#aaa">
+        <div>allOrders: <b style="color:#FF9F0A">${allOrders.length}</b> | nonHist: <b style="color:#32D74B">${nonHist.length}</b> | realOnly(${peakScope}): <b style="color:#0A84FF">${realOnly.length}</b> | byHour total: <b style="color:#FF453A">${hourTotal}</b></div>
+        <div style="margin-top:6px">Sample created_at:</div>
+        ${sample.map(r=>`<div style="color:#FFD60A">${JSON.stringify(r)}</div>`).join('')}
+      </div>`;
+  }
   // hour chart = realOrders (timestamp แม่นยำ)
   const active=sReal.byHour.filter(h=>h.orders>0);
   const maxO=Math.max(...active.map(h=>h.orders),1);
