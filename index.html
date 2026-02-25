@@ -385,7 +385,6 @@
         <button class="pill" onclick="setPeakScope('month',this)">เดือนนี้</button>
       </div>
       <div class="chart-box" style="height:190px"><canvas id="peak-chart"></canvas></div>
-      <div id="peak-debug" style="margin-bottom:12px"></div>
       <div class="sec">อันดับชั่วโมง</div>
       <div class="card-list" id="peak-list"></div>
       <div class="sec">📆 วันในสัปดาห์</div>
@@ -1303,15 +1302,10 @@ function setOvPeriod(p,btn){
 }
 function renderOverview(){
   const orders=filterByPeriod(allOrders,ovPeriod);
-  const nonHist=allOrders.filter(r=>!r.is_history);
-  const real=filterByPeriod(nonHist,ovPeriod);
-  const s=computeFrom(real);
-  const sAll=computeFrom(orders);
+  const s=computeFrom(orders);
+  const sAll=s;
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  // เฉลี่ยต่อบิล = non-historical เท่านั้น (historical ราคาต่อบิลไม่ถูกต้อง)
-  const realCnt=real.length;
-  const realTotal=real.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  const avg=realCnt?Math.round(realTotal/realCnt):0;
+  const avg=orders.length?Math.round(total/orders.length):0;
   document.getElementById('ov-rev').textContent='฿'+fmt(total);
   document.getElementById('ov-cnt').textContent=fmt(orders.length)+' ออเดอร์';
   document.getElementById('ov-avg').textContent=avg?'฿'+fmt(avg):'—';
@@ -1322,7 +1316,7 @@ function renderOverview(){
   const maxQ=top[0]?.[1]||1;
   document.getElementById('ov-menu').innerHTML=top.length?top.map(([n,q],i)=>rankRow(i,n,q,s.menuRev[n]||0,maxQ)).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
   // modifiers
-  renderModifiers('ov-modifiers',real);
+  renderModifiers('ov-modifiers',orders);
   const cats=Object.entries(s.catRev).sort((a,b)=>b[1]-a[1]);
   const maxC=cats[0]?.[1]||1;
   document.getElementById('ov-cat').innerHTML=cats.length?cats.map(([c,r])=>`<div class="ccard"><div class="crow"><span class="cname">${c}</span><span class="cval">฿${fmt(r)}</span></div><div class="cbar-w"><div class="cbar" style="width:${Math.round(r/maxC*100)}%"></div></div><div class="csub">${s.catCnt[c]} รายการ</div></div>`).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
@@ -1331,8 +1325,7 @@ function renderOverview(){
 
 // ── TODAY ─────────────────────────────────────────────────
 function renderToday(){
-  // วันนี้ใช้ realOrders เท่านั้น — historical data ไม่มี items และ timestamp ไม่แม่นยำระดับชั่วโมง
-  const orders=filterByPeriod(realOrders,'today');
+  const orders=filterByPeriod(allOrders,'today');
   const rev=orders.reduce((s,r)=>s+(r.actual_amount||0),0);
   const cnt=orders.length;
   const menuT={};let totalItems=0;
@@ -1384,14 +1377,10 @@ function setTrendPeriod(p,btn){trendPeriod=p;document.querySelectorAll('#page-tr
 function renderTrend(){
   const period=trendPeriod==='7d'?'7d':trendPeriod==='30d'?'30d':'all';
   const orders=filterByPeriod(allOrders,period);
-  const nonHist=allOrders.filter(r=>!r.is_history);
-  const real=filterByPeriod(nonHist,period);
   const s=computeFrom(orders);
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  // เฉลี่ยต่อบิล / maxBill = non-historical เท่านั้น
-  const realTotal=real.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  const avg=real.length?Math.round(realTotal/real.length):0;
-  const maxBill=real.length?Math.max(...real.map(r=>r.actual_amount||0)):0;
+  const avg=orders.length?Math.round(total/orders.length):0;
+  const maxBill=orders.length?Math.max(...orders.map(r=>r.actual_amount||0)):0;
   document.getElementById('trend-total').textContent='฿'+fmt(total);
   document.getElementById('trend-avg').textContent=avg?'฿'+fmt(avg):'—';
   document.getElementById('trend-cnt').textContent=fmt(orders.length)+' บิล';
@@ -1466,35 +1455,14 @@ function renderTrend(){
 // ── PEAK ─────────────────────────────────────────────────
 function setPeakScope(p,btn){peakScope=p;document.querySelectorAll('#page-peak>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPeak();}
 function renderPeak(){
-  const nonHist=allOrders.filter(r=>!r.is_history);
   const orders=filterByPeriod(allOrders,peakScope);
-  const realOnly=filterByPeriod(nonHist,peakScope);
   const s=computeFrom(orders);
-  const sReal=computeFrom(realOnly);
-
-  // ── DEBUG PANEL ──
-  const dbgEl=document.getElementById('peak-debug');
-  if(dbgEl){
-    const sample=allOrders.slice(0,2).map(r=>({
-      ca:r.created_at,
-      is_history:r.is_history,
-      ih_type:typeof r.is_history,
-      keys:Object.keys(r).filter(k=>k.includes('hist')||k.includes('Hist')||k.includes('history'))
-    }));
-    const hourTotal=sReal.byHour.reduce((a,h)=>a+h.orders,0);
-    dbgEl.innerHTML=`
-      <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:10px;font-size:10px;font-family:monospace;color:#aaa">
-        <div>allOrders: <b style="color:#FF9F0A">${allOrders.length}</b> | nonHist: <b style="color:#32D74B">${nonHist.length}</b> | realOnly(${peakScope}): <b style="color:#0A84FF">${realOnly.length}</b> | byHour total: <b style="color:#FF453A">${hourTotal}</b></div>
-        <div style="margin-top:6px">Sample created_at:</div>
-        ${sample.map(r=>`<div style="color:#FFD60A">${JSON.stringify(r)}</div>`).join('')}
-      </div>`;
-  }
-  // hour chart = realOrders (timestamp แม่นยำ)
-  const active=sReal.byHour.filter(h=>h.orders>0);
+  // hour chart = allOrders (is_history flag ไม่ถูกต้องใน DB — ทุก order มี is_history=true)
+  const active=s.byHour.filter(h=>h.orders>0);
   const maxO=Math.max(...active.map(h=>h.orders),1);
   if(peakChart)peakChart.destroy();
   const ctx1=document.getElementById('peak-chart').getContext('2d');
-  peakChart=new Chart(ctx1,{type:'bar',data:{labels:sReal.byHour.map(h=>h.hour+':00'),datasets:[{data:sReal.byHour.map(h=>h.orders),backgroundColor:sReal.byHour.map(h=>h.orders>0&&h.orders===maxO?'#FF9F0A':'rgba(255,159,10,.2)'),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:9},maxRotation:0}},y:{display:false}}}});
+  peakChart=new Chart(ctx1,{type:'bar',data:{labels:s.byHour.map(h=>h.hour+':00'),datasets:[{data:s.byHour.map(h=>h.orders),backgroundColor:s.byHour.map(h=>h.orders>0&&h.orders===maxO?'#FF9F0A':'rgba(255,159,10,.2)'),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:9},maxRotation:0}},y:{display:false}}}});
   document.getElementById('peak-list').innerHTML=active.length
     ?[...active].sort((a,b)=>b.orders-a.orders).map(h=>`<div class="list-row"><div class="htime">${String(h.hour).padStart(2,'0')}:00</div><div class="bar-w"><div class="bar-f" style="width:${Math.round(h.orders/maxO*100)}%;background:var(--primary)"></div></div><div class="hright"><div class="horders">${h.orders} บิล</div><div class="hrev">฿${fmt(h.revenue)}</div></div></div>`).join('')
     :'<div class="empty">ยังไม่มีข้อมูลชั่วโมง</div>';
