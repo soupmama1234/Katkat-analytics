@@ -243,6 +243,26 @@
       cursor:pointer;transition:all .2s}
     .cat-suggest-chip:active{background:rgba(255,159,10,0.3)}
 
+    /* RECIPE */
+    .recipe-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;
+      padding:14px 16px;margin-bottom:10px}
+    .recipe-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .recipe-menu-name{font-size:14px;font-weight:700}
+    .recipe-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;flex-shrink:0}
+    .recipe-tag.ok{background:rgba(50,215,75,0.15);color:var(--success)}
+    .recipe-tag.none{background:rgba(142,142,147,0.15);color:var(--dim)}
+    .recipe-ing{font-size:11px;color:var(--dim);margin-top:4px}
+    .recipe-cost-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;
+      padding-top:8px;border-top:1px solid var(--border2)}
+    .ing-row{display:grid;grid-template-columns:1fr 80px 70px 28px;gap:6px;margin-bottom:8px;align-items:center}
+    .margin-card{background:var(--surface);border-radius:16px;padding:14px 16px;margin-bottom:10px;
+      border-left:4px solid var(--border)}
+    .margin-card.high{border-left-color:var(--success)}
+    .margin-card.mid{border-left-color:var(--primary)}
+    .margin-card.low{border-left-color:var(--danger)}
+    .mg-bar{height:4px;background:var(--border2);border-radius:2px;margin-top:8px}
+    .mg-fill{height:100%;border-radius:2px;transition:width .4s}
+
     select.form-input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
 
     /* OCR */
@@ -642,6 +662,56 @@
       </div>
     </div>
 
+    <!-- ══ RECIPE ══ -->
+    <div id="page-recipe" class="page">
+      <div class="pills">
+        <button class="pill active" onclick="setRecipeView('list',this)">📋 สูตรอาหาร</button>
+        <button class="pill" onclick="setRecipeView('margin',this)">📊 วิเคราะห์ Margin</button>
+      </div>
+
+      <!-- LIST VIEW -->
+      <div id="recipe-list-view">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:13px;color:var(--dim)" id="recipe-summary">โหลด...</div>
+          <button onclick="openRecipeAdd()" style="background:var(--primary);color:#000;border:none;border-radius:12px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">+ เพิ่มสูตร</button>
+        </div>
+        <div class="card-list" id="recipe-menu-list"></div>
+      </div>
+
+      <!-- MARGIN VIEW -->
+      <div id="recipe-margin-view" style="display:none">
+        <div class="grid2" style="margin-bottom:12px">
+          <div class="scard"><div class="scard-lbl">เมนูที่มีสูตรแล้ว</div><div class="scard-val" id="mg-covered">0</div></div>
+          <div class="scard"><div class="scard-lbl">เมนูยังไม่มีสูตร</div><div class="scard-val" id="mg-missing">0</div></div>
+        </div>
+        <div class="card-list" id="mg-list"></div>
+      </div>
+
+      <!-- ADD/EDIT MODAL -->
+      <div id="recipe-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;overflow-y:auto;padding:20px">
+        <div style="background:var(--surface);border-radius:20px;padding:20px;max-width:460px;margin:0 auto">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="font-size:16px;font-weight:700" id="modal-title">สูตร</div>
+            <button onclick="closeRecipeModal()" style="background:var(--surface2);border:none;border-radius:10px;padding:8px 12px;color:var(--dim);font-family:inherit;cursor:pointer">✕ ปิด</button>
+          </div>
+          <div class="form-row">
+            <label class="form-label">เมนู</label>
+            <select id="recipe-menu-select" class="form-input" onchange="onMenuSelect()"></select>
+          </div>
+          <div style="font-size:13px;color:var(--dim);margin-bottom:4px">ราคาขาย: <span id="recipe-sell-price" style="color:var(--primary);font-weight:700">—</span></div>
+          <div class="sec" style="margin-top:16px;margin-bottom:8px">🥩 วัตถุดิบ</div>
+          <div id="ingredient-rows"></div>
+          <button onclick="addIngredientRow()" style="width:100%;background:var(--surface2);border:1px dashed var(--border2);border-radius:12px;padding:10px;color:var(--dim);font-family:inherit;font-size:13px;cursor:pointer;margin-top:8px">+ เพิ่มวัตถุดิบ</button>
+          <div style="margin-top:16px;background:var(--surface2);border-radius:12px;padding:12px" id="recipe-cost-preview">
+            <div style="font-size:12px;color:var(--dim)">ต้นทุนรวมต่อจาน</div>
+            <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:800;color:var(--danger)" id="preview-cost">฿0</div>
+            <div style="font-size:12px;color:var(--dim);margin-top:4px">Gross Margin: <span id="preview-margin" style="font-weight:700">—</span></div>
+          </div>
+          <button onclick="saveRecipe()" class="btn-submit" style="margin-top:16px">💾 บันทึกสูตร</button>
+        </div>
+      </div>
+    </div>
+
   </div><!-- end scroll-area -->
 
   <!-- BOTTOM NAV -->
@@ -651,6 +721,7 @@
     <button class="bnav-btn" onclick="showPage('trend',this)"><span class="icon">📈</span>แนวโน้ม</button>
     <button class="bnav-btn" onclick="showPage('peak',this)"><span class="icon">⏰</span>ช่วงเวลา</button>
     <button class="bnav-btn" onclick="showPage('expenses',this)"><span class="icon">💸</span>ต้นทุน</button>
+    <button class="bnav-btn" onclick="showPage('recipe',this)"><span class="icon">🍳</span>สูตร</button>
     <button class="bnav-btn" onclick="showPage('income',this)"><span class="icon">💚</span>รายได้อื่น</button>
   </nav>
 </div>
@@ -662,7 +733,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 
 // ── STATE ─────────────────────────────────────────────────
 // allOrders = ทุก orders, realOrders = บิลจริง (is_history!=true), histOrders = historical aggregate
-let allOrders=[],realOrders=[],histOrders=[],catMap={},allExpenses=[],allIncome=[];
+let allOrders=[],realOrders=[],histOrders=[],catMap={},allExpenses=[],allIncome=[],allRecipes=[],allProducts=[];
 let ovPeriod='today',trendPeriod='7d',peakScope='all';
 let expListPeriod='today',expAnaPeriod='30d';
 let trendChart=null,peakChart=null,wdChart=null,anaChart=null;
@@ -696,20 +767,22 @@ let selectedExpCat='',selectedIncCat='';
 async function init(){
   loader(true);
   try{
-    const[oR,pR,eR,iR]=await Promise.all([
+    const[oR,pR,eR,iR,rR]=await Promise.all([
       sb.from('orders').select('*').order('created_at',{ascending:false}),
-      sb.from('products').select('id,name,category'),
+      sb.from('products').select('id,name,category,price').order('name'),
       sb.from('expenses').select('*').order('date',{ascending:false}),
       sb.from('other_income').select('*').order('date',{ascending:false}),
+      sb.from('recipes').select('*').order('menu_name'),
     ]);
     if(oR.error) throw oR.error;
     catMap={};(pR.data||[]).forEach(p=>{catMap[p.name]=p.category||'ทั่วไป';});
     allOrders=oR.data||[];
-    // แยก historical (is_history=true) ออกจาก real orders
     realOrders=allOrders.filter(r=>!r.is_history);
     histOrders=allOrders.filter(r=>r.is_history);
     allExpenses=eR.data||[];
     allIncome=iR.data||[];
+    allRecipes=rR.data||[];
+    allProducts=pR.data||[];
 
     // build history from existing data
     itemHistory=[...new Set(allExpenses.map(e=>e.item).filter(Boolean))];
@@ -1275,6 +1348,210 @@ async function exportCSV(table){
 }
 
 // ── PAGES ─────────────────────────────────────────────────
+// ══ RECIPE SYSTEM ═════════════════════════════════════════
+
+let currentRecipeMenu='';
+
+function getIngredientPricePerUnit(ingredient){
+  const matches=allExpenses.filter(e=>e.item&&e.item.toLowerCase().includes(ingredient.toLowerCase())&&e.quantity&&e.amount);
+  if(!matches.length) return null;
+  const latest=matches[0];
+  return{ppu:latest.amount/latest.quantity,unit:latest.unit||'',date:latest.date};
+}
+
+function setRecipeView(v,btn){
+  document.getElementById('recipe-list-view').style.display=v==='list'?'block':'none';
+  document.getElementById('recipe-margin-view').style.display=v==='margin'?'block':'none';
+  document.querySelectorAll('#page-recipe>.pills .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(v==='list') renderRecipeList();
+  if(v==='margin') renderMarginAnalysis();
+}
+
+function renderRecipeList(){
+  const byMenu={};
+  allRecipes.forEach(r=>{if(!byMenu[r.menu_name])byMenu[r.menu_name]=[];byMenu[r.menu_name].push(r);});
+  const covered=Object.keys(byMenu).length;
+  document.getElementById('recipe-summary').textContent=`มีสูตรแล้ว ${covered}/${allProducts.length} เมนู`;
+  document.getElementById('recipe-menu-list').innerHTML=allProducts.map(p=>{
+    const ings=byMenu[p.name]||[];
+    const hasCost=ings.length>0;
+    let totalCost=0;let hasUnknown=false;
+    ings.forEach(ing=>{const info=getIngredientPricePerUnit(ing.ingredient);if(info)totalCost+=info.ppu*ing.quantity;else hasUnknown=true;});
+    const sellPrice=p.price||0;
+    const margin=sellPrice&&hasCost?(((sellPrice-totalCost)/sellPrice)*100).toFixed(0):null;
+    const mgColor=margin>=60?'var(--success)':margin>=40?'var(--primary)':'var(--danger)';
+    return`<div class="recipe-card">
+      <div class="recipe-card-head">
+        <div class="recipe-menu-name">${p.name}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${sellPrice?`<span style="font-size:11px;color:var(--dim)">฿${fmt(sellPrice)}</span>`:''}
+          <span class="recipe-tag ${hasCost?'ok':'none'}">${hasCost?`${ings.length} วัตถุดิบ`:'ยังไม่มีสูตร'}</span>
+        </div>
+      </div>
+      ${hasCost?`<div class="recipe-ing">${ings.map(i=>`${i.ingredient} ${i.quantity}${i.unit||''}`).join(' · ')}</div>
+      <div class="recipe-cost-row">
+        <div style="font-size:12px;color:var(--dim)">ต้นทุน: <span style="color:var(--danger);font-weight:700;font-family:'Inter',sans-serif">฿${totalCost.toFixed(2)}</span>${hasUnknown?' <span style="color:#555">*</span>':''}</div>
+        ${margin!==null?`<div style="font-size:12px;font-weight:700;color:${mgColor}">Margin ${margin}%</div>`:''}
+      </div>`:''}
+      <button onclick="openRecipeEdit('${p.name.replace(/\'/g,"\\'")}',${sellPrice})" style="margin-top:10px;width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:8px;color:${hasCost?'var(--dim)':'var(--primary)'};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">${hasCost?'✏️ แก้ไขสูตร':'+ เพิ่มสูตร'}</button>
+    </div>`;
+  }).join('')||'<div class="empty">ยังไม่มีเมนู — กรุณาเพิ่มสินค้าใน POS ก่อน</div>';
+}
+
+function openRecipeAdd(){
+  currentRecipeMenu='';
+  document.getElementById('modal-title').textContent='เพิ่มสูตรอาหาร';
+  const sel=document.getElementById('recipe-menu-select');
+  sel.innerHTML=`<option value="">เลือกเมนู...</option>`+allProducts.map(p=>`<option value="${p.name}" data-price="${p.price||0}">${p.name}${p.price?' (฿'+p.price+')':''}</option>`).join('');
+  sel.disabled=false;
+  document.getElementById('recipe-sell-price').textContent='—';
+  document.getElementById('ingredient-rows').innerHTML='';
+  addIngredientRow();updateCostPreview();
+  document.getElementById('recipe-modal').style.display='block';
+}
+
+function openRecipeEdit(menuName,sellPrice){
+  currentRecipeMenu=menuName;
+  document.getElementById('modal-title').textContent=`สูตร: ${menuName}`;
+  const sel=document.getElementById('recipe-menu-select');
+  sel.innerHTML=`<option value="${menuName}" data-price="${sellPrice}" selected>${menuName}</option>`;
+  sel.disabled=true;
+  document.getElementById('recipe-sell-price').textContent=sellPrice?`฿${fmt(sellPrice)}`:'ไม่มีราคา';
+  const existing=allRecipes.filter(r=>r.menu_name===menuName);
+  document.getElementById('ingredient-rows').innerHTML='';
+  if(existing.length) existing.forEach(r=>addIngredientRow(r.ingredient,r.quantity,r.unit));
+  else addIngredientRow();
+  updateCostPreview();
+  document.getElementById('recipe-modal').style.display='block';
+}
+
+function closeRecipeModal(){document.getElementById('recipe-modal').style.display='none';}
+
+function onMenuSelect(){
+  const sel=document.getElementById('recipe-menu-select');
+  const opt=sel.options[sel.selectedIndex];
+  currentRecipeMenu=sel.value;
+  const price=opt?.dataset?.price||0;
+  document.getElementById('recipe-sell-price').textContent=price>0?`฿${fmt(price)}`:'ไม่มีราคา';
+  updateCostPreview();
+}
+
+function addIngredientRow(ingredient='',quantity='',unit=''){
+  const div=document.createElement('div');
+  div.className='ing-row';
+  div.innerHTML=`
+    <div class="ac-wrap">
+      <input type="text" class="form-input ing-name" placeholder="วัตถุดิบ" value="${ingredient}" autocomplete="off" oninput="ingAc(this);updateCostPreview()" style="font-size:12px">
+      <div class="ac-list ing-ac"></div>
+    </div>
+    <input type="number" class="form-input ing-qty" placeholder="จำนวน" value="${quantity}" inputmode="decimal" oninput="updateCostPreview()" style="font-size:12px">
+    <input type="text" class="form-input ing-unit" placeholder="หน่วย" value="${unit||''}" style="font-size:12px">
+    <button onclick="this.parentElement.remove();updateCostPreview()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--danger);font-size:14px;cursor:pointer;height:36px;width:28px">✕</button>`;
+  document.getElementById('ingredient-rows').appendChild(div);
+}
+
+function ingAc(input){
+  const val=input.value.toLowerCase();
+  const ac=input.nextElementSibling;
+  if(!val){ac.style.display='none';return;}
+  const names=[...new Set(allExpenses.map(e=>e.item).filter(Boolean))];
+  const matches=names.filter(n=>n.toLowerCase().includes(val)).slice(0,6);
+  if(!matches.length){ac.style.display='none';return;}
+  ac.innerHTML=matches.map(n=>`<div class="ac-item" onclick="selectIngAc(this,'${n.replace(/'/g,"\\'")}');updateCostPreview()">${n}</div>`).join('');
+  ac.style.display='block';
+}
+function selectIngAc(el,name){
+  el.closest('.ac-wrap').querySelector('.ing-name').value=name;
+  el.closest('.ac-list').style.display='none';
+}
+
+function updateCostPreview(){
+  const rows=document.querySelectorAll('#ingredient-rows .ing-row');
+  let total=0;let hasUnknown=false;
+  rows.forEach(row=>{
+    const name=row.querySelector('.ing-name')?.value||'';
+    const qty=parseFloat(row.querySelector('.ing-qty')?.value)||0;
+    if(!name||!qty) return;
+    const info=getIngredientPricePerUnit(name);
+    if(info) total+=info.ppu*qty;
+    else if(name) hasUnknown=true;
+  });
+  document.getElementById('preview-cost').textContent=`฿${total.toFixed(2)}${hasUnknown?' *':''}`;
+  const sel=document.getElementById('recipe-menu-select');
+  const opt=sel.options[sel.selectedIndex];
+  const sellPrice=parseFloat(opt?.dataset?.price||0);
+  if(sellPrice&&total>0){
+    const mg=((sellPrice-total)/sellPrice*100).toFixed(0);
+    const color=mg>=60?'var(--success)':mg>=40?'var(--primary)':'var(--danger)';
+    document.getElementById('preview-margin').innerHTML=`<span style="color:${color}">${mg}%</span> · กำไร ฿${(sellPrice-total).toFixed(2)}`;
+  } else document.getElementById('preview-margin').textContent='—';
+}
+
+async function saveRecipe(){
+  const menuName=currentRecipeMenu||document.getElementById('recipe-menu-select').value;
+  if(!menuName){showToast('กรุณาเลือกเมนู','err');return;}
+  const rows=document.querySelectorAll('#ingredient-rows .ing-row');
+  const ingredients=[];
+  rows.forEach(row=>{
+    const name=row.querySelector('.ing-name')?.value?.trim()||'';
+    const qty=parseFloat(row.querySelector('.ing-qty')?.value)||0;
+    const unit=row.querySelector('.ing-unit')?.value?.trim()||'';
+    if(name&&qty) ingredients.push({menu_name:menuName,ingredient:name,quantity:qty,unit});
+  });
+  if(!ingredients.length){showToast('กรุณาเพิ่มวัตถุดิบอย่างน้อย 1 อย่าง','err');return;}
+  try{
+    await sb.from('recipes').delete().eq('menu_name',menuName);
+    const{error}=await sb.from('recipes').insert(ingredients);
+    if(error) throw error;
+    const{data}=await sb.from('recipes').select('*').order('menu_name');
+    allRecipes=data||[];
+    showToast('✅ บันทึกสูตรแล้ว');
+    closeRecipeModal();renderRecipeList();
+  }catch(e){showToast('❌ '+e.message,'err');}
+}
+
+function renderMarginAnalysis(){
+  const byMenu={};
+  allRecipes.forEach(r=>{if(!byMenu[r.menu_name])byMenu[r.menu_name]=[];byMenu[r.menu_name].push(r);});
+  const menuSales={};
+  allOrders.forEach(order=>{
+    let items=order.items;if(!items)return;
+    if(typeof items==='string'){try{items=JSON.parse(items);}catch{return;}}
+    if(!Array.isArray(items))return;
+    items.forEach(item=>{const n=item.name||'';const q=Number(item.qty||1);const p=Number(item.price||0);if(!menuSales[n])menuSales[n]={qty:0,revenue:0};menuSales[n].qty+=q;menuSales[n].revenue+=p*q;});
+  });
+  const covered=Object.keys(byMenu).length;
+  document.getElementById('mg-covered').textContent=covered+' เมนู';
+  document.getElementById('mg-missing').textContent=(allProducts.length-covered)+' เมนู';
+  const items=Object.entries(byMenu).map(([menu,ings])=>{
+    let cost=0;let hasUnknown=false;
+    ings.forEach(ing=>{const info=getIngredientPricePerUnit(ing.ingredient);if(info)cost+=info.ppu*ing.quantity;else hasUnknown=true;});
+    const p=allProducts.find(x=>x.name===menu);
+    const sellPrice=p?.price||0;
+    const margin=sellPrice&&cost?((sellPrice-cost)/sellPrice*100):null;
+    const sales=menuSales[menu]||{qty:0,revenue:0};
+    return{menu,cost,sellPrice,margin,hasUnknown,sales};
+  }).sort((a,b)=>(a.margin??999)-(b.margin??999));
+  document.getElementById('mg-list').innerHTML=items.map(item=>{
+    const mg=item.margin;
+    const cls=mg===null?'':mg>=60?'high':mg>=40?'mid':'low';
+    const mgColor=mg===null?'var(--dim)':mg>=60?'var(--success)':mg>=40?'var(--primary)':'var(--danger)';
+    return`<div class="margin-card ${cls}">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:14px;font-weight:700">${item.menu}</div>
+        <div style="font-family:'Inter',sans-serif;font-size:18px;font-weight:800;color:${mgColor}">${mg!==null?mg.toFixed(0)+'%':'—'}</div>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap">
+        <span>ขาย ฿${fmt(item.sellPrice)}</span><span>ต้นทุน ฿${item.cost.toFixed(2)}</span><span>กำไร ฿${(item.sellPrice-item.cost).toFixed(2)}</span>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-top:2px">ขายแล้ว ${fmt(item.sales.qty)} จาน · รายได้ ฿${fmt(Math.round(item.sales.revenue))}</div>
+      ${mg!==null?`<div class="mg-bar"><div class="mg-fill" style="width:${Math.min(100,Math.max(0,mg))}%;background:${mgColor}"></div></div>`:''}
+      ${item.hasUnknown?'<div style="font-size:10px;color:var(--dim);margin-top:4px">⚠️ บางวัตถุดิบยังไม่มีราคาใน expenses</div>':''}
+    </div>`;
+  }).join('')||'<div class="empty">ยังไม่มีสูตรอาหาร</div>';
+}
+
 function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
@@ -1284,6 +1561,7 @@ function showPage(id,btn){
   // re-render charts after page becomes visible (canvas needs non-zero size)
   if(id==='peak') requestAnimationFrame(()=>renderPeak());
   if(id==='trend') requestAnimationFrame(()=>renderTrend());
+  if(id==='recipe') requestAnimationFrame(()=>renderRecipeList());
   if(id==='expenses') requestAnimationFrame(()=>{if(document.getElementById('exp-analysis').style.display!=='none')renderExpAnalysis();});
 }
 
