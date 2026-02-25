@@ -1423,8 +1423,8 @@ let currentRecipeMenu='';
 function getIngredientPricePerUnit(ingredient){
   const matches=allExpenses.filter(e=>e.item&&e.item.toLowerCase().includes(ingredient.toLowerCase())&&e.quantity&&e.amount);
   if(!matches.length) return null;
-  const latest=matches[0];
-  return{ppu:latest.amount/latest.quantity,unit:latest.unit||'',date:latest.date};
+  const e=matches[0];
+  return{ppu:e.amount/e.quantity, unit:e.unit||'', date:e.date, totalAmount:e.amount, totalQty:e.quantity};
 }
 
 function setRecipeView(v,btn){
@@ -1540,14 +1540,20 @@ function updateIngRow(row){
   if(!name){result.className='ing-row-result unknown';result.textContent='กรอกชื่อวัตถุดิบ...';return;}
   const info=getIngredientPricePerUnit(name);
   if(!info){result.className='ing-row-result unknown';result.innerHTML=`⚠️ ไม่พบ "${name}" ในรายการต้นทุน`;return;}
-  // อัปเดต unit จาก expense เสมอ
   unitField.value=info.unit||'';
   const unit=info.unit||'หน่วย';
   const cost=qty?info.ppu*qty:0;
   result.className='ing-row-result known';
-  result.innerHTML=qty
-    ?`<span>฿${info.ppu.toFixed(2)}/${unit} <span style="color:#555">(${info.date})</span></span><span style="font-family:'Inter',sans-serif">ใช้ ${qty} ${unit} = <b style="color:var(--danger)">฿${cost.toFixed(2)}</b></span>`
-    :`<span>฿${info.ppu.toFixed(2)}/${unit} <span style="color:#555">(${info.date})</span></span><span style="color:#555">← ใส่จำนวนที่ใช้ต่อจาน</span>`;
+  // บรรทัด 1: ข้อมูลที่ซื้อมา
+  // บรรทัด 2: ใช้เท่าไหร่ = เท่าไหร่บาท
+  result.innerHTML=`
+    <div style="display:flex;justify-content:space-between;width:100%">
+      <span style="color:#888">ซื้อมา ${info.totalQty} ${unit} = ฿${info.totalAmount.toFixed(0)} → <b style="color:var(--text)">฿${info.ppu.toFixed(2)}/${unit}</b> <span style="color:#555">(${info.date})</span></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;width:100%;margin-top:3px">
+      <span>${qty?`ใช้ <b>${qty} ${unit}</b>`:'← ใส่จำนวนที่ใช้ต่อจาน'}</span>
+      <span style="font-family:'Inter',sans-serif">${qty?`= <b style="color:var(--danger)">฿${cost.toFixed(2)}</b>`:''}</span>
+    </div>`;
 }
 
 
