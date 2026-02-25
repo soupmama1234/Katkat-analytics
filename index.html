@@ -1475,11 +1475,11 @@ function renderPeak(){
   // ── DEBUG PANEL ──
   const dbgEl=document.getElementById('peak-debug');
   if(dbgEl){
-    const sample=nonHist.slice(0,3).map(r=>({
+    const sample=allOrders.slice(0,2).map(r=>({
       ca:r.created_at,
-      ih:r.is_history,
-      ch:r.channel,
-      amt:r.actual_amount
+      is_history:r.is_history,
+      ih_type:typeof r.is_history,
+      keys:Object.keys(r).filter(k=>k.includes('hist')||k.includes('Hist')||k.includes('history'))
     }));
     const hourTotal=sReal.byHour.reduce((a,h)=>a+h.orders,0);
     dbgEl.innerHTML=`
