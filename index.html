@@ -1454,8 +1454,9 @@ function renderTrend(){
 // ── PEAK ─────────────────────────────────────────────────
 function setPeakScope(p,btn){peakScope=p;document.querySelectorAll('#page-peak>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPeak();}
 function renderPeak(){
-  // Peak hours ใช้ realOrders — historical ทุกอันถูก set เป็น 12:00 ทำให้ hour chart เพี้ยน
-  const orders=filterByPeriod(realOrders,peakScope);
+  // ใช้ allOrders สำหรับ hour/weekday chart — historical orders มี timestamp ที่ถูกต้อง
+  // realOrders มีน้อยเกินไปทำให้ chart ว่าง
+  const orders=filterByPeriod(allOrders,peakScope);
   const s=computeFrom(orders);
   const active=s.byHour.filter(h=>h.orders>0);
   const maxO=Math.max(...active.map(h=>h.orders),1);
@@ -1494,7 +1495,16 @@ function computeFrom(orders){
       else if(pm.includes('เงินสด')||pm.includes('cash')) posPayment.cash+=actual;
       else posPayment.other+=actual;
     }
-    if(r.created_at){const d=new Date(r.created_at);const h=d.getHours();byHour[h].orders++;byHour[h].revenue+=actual;const wd=d.getDay();const idx=wd===0?6:wd-1;byWeekday[idx].rev+=actual;byWeekday[idx].cnt++;}
+    if(r.created_at){
+      const d=new Date(r.created_at);
+      const h=d.getHours();
+      const wd=d.getDay();const idx=wd===0?6:wd-1;
+      byWeekday[idx].rev+=actual;byWeekday[idx].cnt++;
+      // skip hour counting for historical placeholders (exactly midnight or noon with is_history flag)
+      if(!r.is_history){
+        byHour[h].orders++;byHour[h].revenue+=actual;
+      }
+    }
     let items=r.items;if(!items)return;
     if(typeof items==='string'){try{items=JSON.parse(items);}catch{return;}}
     if(!Array.isArray(items))return;
