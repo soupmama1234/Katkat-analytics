@@ -1487,13 +1487,9 @@ function openRecipeEdit(menuName,sellPrice){
   sel.disabled=true;
   document.getElementById('recipe-sell-price').textContent=sellPrice?`฿${fmt(sellPrice)}`:'ไม่มีราคา';
   document.getElementById('ingredient-rows').innerHTML='';
-  document.getElementById('modifier-rows').innerHTML='';
-  const existing=allRecipes.filter(r=>r.menu_name===menuName);
-  const ings=existing.filter(r=>!r.is_modifier);
-  const mods=existing.filter(r=>r.is_modifier);
-  if(ings.length) ings.forEach(r=>addIngredientRow(r.ingredient,r.quantity,r.unit));
+  const existing=allRecipes.filter(r=>r.menu_name===menuName&&!r.is_modifier);
+  if(existing.length) existing.forEach(r=>addIngredientRow(r.ingredient,r.quantity,r.unit));
   else addIngredientRow();
-  mods.forEach(r=>addModifierRow(r.ingredient,r.extra_price,r.quantity));
   // update result rows after render
   setTimeout(()=>{
     document.querySelectorAll('#ingredient-rows .ing-row').forEach(row=>updateIngRow(row));
@@ -1555,34 +1551,6 @@ function updateIngRow(row){
     :`<span>พบ: ฿${info.ppu.toFixed(2)}/${info.unit||'หน่วย'} <span style="color:#555">(${info.date})</span></span><span style="color:#555">← กรอกจำนวนที่ใช้ต่อจาน</span>`;
 }
 
-function addModifierRow(name='',extraPrice=0,ingCost=0){
-  const div=document.createElement('div');
-  div.className='ing-row';
-  div.innerHTML=`
-    <div class="ing-row-top">
-      <input type="text" class="form-input mod-name" placeholder="ชื่อ modifier (เช่น ไข่ดาว)" value="${name}"
-        style="font-size:13px" oninput="updateCostPreview()">
-      <div class="ing-qty-unit">
-        <div style="position:relative;flex:1">
-          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim)">+฿</span>
-          <input type="number" class="form-input mod-price" placeholder="0" value="${extraPrice||''}"
-            inputmode="decimal" style="font-size:13px;padding-left:28px" oninput="updateCostPreview()">
-        </div>
-        <div style="position:relative;flex:1">
-          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--dim)">ต้นทุน</span>
-          <input type="number" class="form-input mod-cost" placeholder="0" value="${ingCost||''}"
-            inputmode="decimal" style="font-size:13px;padding-left:44px" oninput="updateCostPreview()">
-        </div>
-      </div>
-      <button onclick="this.closest('.ing-row').remove();updateCostPreview()"
-        style="background:transparent;border:none;color:var(--danger);font-size:16px;cursor:pointer;height:36px;width:28px;flex-shrink:0">✕</button>
-    </div>
-    <div class="ing-row-result" style="color:var(--dim);font-size:11px">
-      ราคาขายเพิ่ม ${extraPrice?'฿'+extraPrice:'-'} · ต้นทุนเพิ่ม ${ingCost?'฿'+ingCost:'-'}
-      ${extraPrice&&ingCost?` · margin เสริม <b>${(((extraPrice-ingCost)/extraPrice)*100).toFixed(0)}%</b>`:''}
-    </div>`;
-  document.getElementById('modifier-rows').appendChild(div);
-}
 
 function ingAc(input){
   const val=input.value.toLowerCase();
@@ -1628,21 +1596,13 @@ async function saveRecipe(){
   const menuName=currentRecipeMenu||document.getElementById('recipe-menu-select').value;
   if(!menuName){showToast('กรุณาเลือกเมนู','err');return;}
   const rows=[];
-  // วัตถุดิบหลัก
   document.querySelectorAll('#ingredient-rows .ing-row').forEach(row=>{
     const name=row.querySelector('.ing-name')?.value?.trim()||'';
     const qty=parseFloat(row.querySelector('.ing-qty')?.value)||0;
     const unit=row.querySelector('.ing-unit')?.value?.trim()||'';
     if(name&&qty) rows.push({menu_name:menuName,ingredient:name,quantity:qty,unit,is_modifier:false,extra_price:0});
   });
-  // modifier
-  document.querySelectorAll('#modifier-rows .ing-row').forEach(row=>{
-    const name=row.querySelector('.mod-name')?.value?.trim()||'';
-    const price=parseFloat(row.querySelector('.mod-price')?.value)||0;
-    const cost=parseFloat(row.querySelector('.mod-cost')?.value)||0;
-    if(name) rows.push({menu_name:menuName,ingredient:name,quantity:cost,unit:'',is_modifier:true,extra_price:price});
-  });
-  if(!rows.filter(r=>!r.is_modifier).length){showToast('กรุณาเพิ่มวัตถุดิบอย่างน้อย 1 อย่าง','err');return;}
+  if(!rows.length){showToast('กรุณาเพิ่มวัตถุดิบอย่างน้อย 1 อย่าง','err');return;}
   try{
     await sb.from('recipes').delete().eq('menu_name',menuName);
     const{error}=await sb.from('recipes').insert(rows);
