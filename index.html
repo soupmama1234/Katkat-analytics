@@ -1016,7 +1016,7 @@ function setExpView(v,btn){
   document.querySelectorAll('#page-expenses>.pills .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(v==='list') renderExpList();
-  if(v==='analysis') renderExpAnalysis();
+  if(v==='analysis') requestAnimationFrame(()=>renderExpAnalysis());
 }
 function setIncView(v,btn){
   document.getElementById('inc-add').style.display=v==='add'?'block':'none';
@@ -1274,11 +1274,17 @@ function showPage(id,btn){
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
   document.getElementById('scroll-area').scrollTop=0;
+  // re-render charts after page becomes visible (canvas needs non-zero size)
+  if(id==='peak') requestAnimationFrame(()=>renderPeak());
+  if(id==='trend') requestAnimationFrame(()=>renderTrend());
+  if(id==='expenses') requestAnimationFrame(()=>{if(document.getElementById('exp-analysis').style.display!=='none')renderExpAnalysis();});
 }
 
 // ── RENDER ALL ────────────────────────────────────────────
 function renderAll(){
-  renderOverview();renderToday();renderTrend();renderPeak();
+  renderOverview();renderToday();
+  // trend/peak charts ไม่ render ตอน init เพราะ canvas display:none → size=0
+  // จะ render ตอน showPage() แทน
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────
