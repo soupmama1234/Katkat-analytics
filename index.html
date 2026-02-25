@@ -706,29 +706,14 @@
           </div>
           <div style="font-size:13px;color:var(--dim);margin-bottom:4px">ราคาขาย: <span id="recipe-sell-price" style="color:var(--primary);font-weight:700">—</span></div>
 
-          <!-- GUIDE -->
-          <div style="background:#FF9F0A18;border:1px solid #FF9F0A33;border-radius:10px;padding:10px 12px;margin:12px 0;font-size:11px;color:#FF9F0A;line-height:1.7">
-            💡 <b>วิธีกรอก:</b> ใส่ชื่อวัตถุดิบ (ตรงกับที่บันทึกในต้นทุน) → ปริมาณที่ใช้ต่อ 1 จาน<br>
-            เช่น <b>หมูสามชั้น</b> ใช้ <b>0.15</b> kg · <b>ข้าว</b> ใช้ <b>200</b> g · <b>กล่อง</b> ใช้ <b>1</b> ชิ้น
-          </div>
-
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
             <div style="font-size:13px;font-weight:700">🥩 วัตถุดิบหลัก</div>
             <button onclick="addIngredientRow()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:4px 12px;color:var(--primary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">+ เพิ่ม</button>
           </div>
           <div id="ingredient-rows"></div>
 
-          <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
-            <div>
-              <div style="font-size:13px;font-weight:700">✨ เมนูเสริม (Modifier)</div>
-              <div style="font-size:11px;color:var(--dim)">เช่น ไข่ดาว +฿10, ไซส์ใหญ่ +฿15</div>
-            </div>
-            <button onclick="addModifierRow()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:4px 12px;color:var(--primary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">+ เพิ่ม</button>
-          </div>
-          <div id="modifier-rows"></div>
-
           <div style="margin-top:16px;background:var(--surface2);border-radius:12px;padding:14px" id="recipe-cost-preview">
-            <div style="font-size:12px;color:var(--dim);margin-bottom:4px">ต้นทุนรวมต่อจาน (เมนูหลัก)</div>
+            <div style="font-size:12px;color:var(--dim);margin-bottom:4px">ต้นทุนรวมต่อจาน</div>
             <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--danger)" id="preview-cost">฿0</div>
             <div style="font-size:12px;color:var(--dim);margin-top:6px">Gross Margin: <span id="preview-margin" style="font-weight:700">—</span></div>
           </div>
@@ -1145,10 +1130,13 @@ function renderExpList(){
   document.getElementById('exp-items-list').innerHTML=filtered.length
     ?filtered.map(e=>{
         const cat=EXP_CATS.find(c=>c.key===e.category);
-        return`<div class="exp-item">
+        return`<div class="exp-item" id="exp-row-${e.id}">
           <div class="exp-top">
             <div class="exp-name">${e.item||'-'}</div>
-            <div class="exp-amt">-฿${fmt(e.amount)}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="exp-amt">-฿${fmt(e.amount)}</div>
+              <button onclick="startEditExp('${e.id}')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:3px 8px;color:var(--dim);font-size:11px;cursor:pointer;flex-shrink:0">✏️</button>
+            </div>
           </div>
           <div class="exp-meta">
             <span class="exp-cat" style="color:${cat?.color||'#888'}">${cat?.icon||''} ${e.category||''}</span>
@@ -1160,6 +1148,61 @@ function renderExpList(){
         </div>`;
       }).join('')
     :'<div class="empty">ยังไม่มีรายการ</div>';
+}
+
+function startEditExp(id){
+  const e=allExpenses.find(x=>String(x.id)===String(id));
+  if(!e) return;
+  const row=document.getElementById('exp-row-'+id);
+  const cat=EXP_CATS.find(c=>c.key===e.category);
+  row.innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <input id="ee-item" class="form-input" value="${e.item||''}" placeholder="รายการ" style="font-size:12px">
+        <input id="ee-amount" class="form-input" type="number" value="${e.amount||''}" placeholder="ยอดรวม ฿" style="font-size:12px" inputmode="decimal">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <input id="ee-qty" class="form-input" type="number" value="${e.quantity||''}" placeholder="จำนวน" style="font-size:12px" inputmode="decimal">
+        <input id="ee-unit" class="form-input" value="${e.unit||''}" placeholder="หน่วย" style="font-size:12px">
+        <input id="ee-date" class="form-input" type="date" value="${e.date||''}" style="font-size:12px">
+      </div>
+      <input id="ee-vendor" class="form-input" value="${e.vendor||''}" placeholder="ร้าน/แหล่งซื้อ" style="font-size:12px">
+      <div style="display:flex;gap:6px">
+        <button onclick="saveEditExp('${id}')" style="flex:1;background:var(--primary);color:#000;border:none;border-radius:10px;padding:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✓ บันทึก</button>
+        <button onclick="renderExpList()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;color:var(--dim);font-family:inherit;font-size:13px;cursor:pointer">ยกเลิก</button>
+        <button onclick="deleteExp('${id}')" style="background:#FF453A22;border:1px solid #FF453A44;border-radius:10px;padding:8px 14px;color:var(--danger);font-family:inherit;font-size:13px;cursor:pointer">🗑</button>
+      </div>
+    </div>`;
+}
+
+async function saveEditExp(id){
+  const item=document.getElementById('ee-item')?.value?.trim();
+  const amount=parseFloat(document.getElementById('ee-amount')?.value)||0;
+  const qty=parseFloat(document.getElementById('ee-qty')?.value)||null;
+  const unit=document.getElementById('ee-unit')?.value?.trim()||null;
+  const date=document.getElementById('ee-date')?.value||null;
+  const vendor=document.getElementById('ee-vendor')?.value?.trim()||null;
+  if(!item||!amount){showToast('กรุณากรอกรายการและยอดเงิน','err');return;}
+  try{
+    const{error}=await sb.from('expenses').update({item,amount,quantity:qty,unit,date,vendor}).eq('id',id);
+    if(error) throw error;
+    // update local state
+    const idx=allExpenses.findIndex(x=>String(x.id)===String(id));
+    if(idx>=0) allExpenses[idx]={...allExpenses[idx],item,amount,quantity:qty,unit,date,vendor};
+    showToast('✅ แก้ไขแล้ว');
+    renderExpList();
+  }catch(e){showToast('❌ '+e.message,'err');}
+}
+
+async function deleteExp(id){
+  if(!confirm('ลบรายการนี้?')) return;
+  try{
+    const{error}=await sb.from('expenses').delete().eq('id',id);
+    if(error) throw error;
+    allExpenses=allExpenses.filter(x=>String(x.id)!==String(id));
+    showToast('🗑 ลบแล้ว');
+    renderExpList();
+  }catch(e){showToast('❌ '+e.message,'err');}
 }
 
 // ── RENDER INCOME LIST ────────────────────────────────────
@@ -1502,12 +1545,14 @@ function updateIngRow(row){
   const result=row.querySelector('.ing-row-result');
   if(!name){result.className='ing-row-result unknown';result.textContent='กรอกชื่อวัตถุดิบ...';return;}
   const info=getIngredientPricePerUnit(name);
-  if(!info){result.className='ing-row-result unknown';result.textContent=`⚠️ "${name}" ยังไม่มีในต้นทุน — กรอกหน่วยเองแล้วระบบจะคำนวณได้เมื่อบันทึกต้นทุน`;return;}
-  // auto-fill unit ถ้ายังว่าง
+  if(!info){result.className='ing-row-result unknown';result.innerHTML=`⚠️ ไม่พบ "${name}" ในรายการต้นทุน`;return;}
   if(!unitInput.value&&info.unit) unitInput.value=info.unit;
+  const unitLabel=unitInput.value||info.unit||'หน่วย';
   const cost=qty?info.ppu*qty:0;
   result.className='ing-row-result known';
-  result.innerHTML=`<span>ราคา <b>฿${info.ppu.toFixed(2)}</b> / ${info.unit||'หน่วย'}</span><span style="font-family:'Inter',sans-serif">ใช้ ${qty||'?'} ${unitInput.value||info.unit} = <b style="color:var(--danger)">฿${cost.toFixed(2)}</b></span>`;
+  result.innerHTML=qty
+    ?`<span>ราคา <b>฿${info.ppu.toFixed(2)}</b>/${info.unit||'หน่วย'} <span style="color:#555">(${info.date})</span></span><span style="font-family:'Inter',sans-serif">ใช้ ${qty} ${unitLabel} = <b style="color:var(--danger)">฿${cost.toFixed(2)}</b></span>`
+    :`<span>พบ: ฿${info.ppu.toFixed(2)}/${info.unit||'หน่วย'} <span style="color:#555">(${info.date})</span></span><span style="color:#555">← กรอกจำนวนที่ใช้ต่อจาน</span>`;
 }
 
 function addModifierRow(name='',extraPrice=0,ingCost=0){
