@@ -385,6 +385,7 @@
         <button class="pill" onclick="setPeakScope('month',this)">เดือนนี้</button>
       </div>
       <div class="chart-box" style="height:190px"><canvas id="peak-chart"></canvas></div>
+      <div id="peak-debug" style="font-size:10px;color:#FF453A;padding:4px 8px;word-break:break-all"></div>
       <div class="sec">อันดับชั่วโมง</div>
       <div class="card-list" id="peak-list"></div>
       <div class="sec">📆 วันในสัปดาห์</div>
@@ -1295,11 +1296,12 @@ function setOvPeriod(p,btn){
 }
 function renderOverview(){
   const orders=filterByPeriod(allOrders,ovPeriod);
-  const real=filterByPeriod(realOrders,ovPeriod);
+  const nonHist=allOrders.filter(r=>!r.is_history);
+  const real=filterByPeriod(nonHist,ovPeriod);
   const s=computeFrom(real);
   const sAll=computeFrom(orders);
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  // เฉลี่ยต่อบิล = realOrders เท่านั้น (historical ราคาต่อบิลไม่ถูกต้อง)
+  // เฉลี่ยต่อบิล = non-historical เท่านั้น (historical ราคาต่อบิลไม่ถูกต้อง)
   const realCnt=real.length;
   const realTotal=real.reduce((sum,r)=>sum+(r.actual_amount||0),0);
   const avg=realCnt?Math.round(realTotal/realCnt):0;
@@ -1375,10 +1377,11 @@ function setTrendPeriod(p,btn){trendPeriod=p;document.querySelectorAll('#page-tr
 function renderTrend(){
   const period=trendPeriod==='7d'?'7d':trendPeriod==='30d'?'30d':'all';
   const orders=filterByPeriod(allOrders,period);
-  const real=filterByPeriod(realOrders,period);
+  const nonHist=allOrders.filter(r=>!r.is_history);
+  const real=filterByPeriod(nonHist,period);
   const s=computeFrom(orders);
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
-  // เฉลี่ยต่อบิล = realOrders เท่านั้น (historical ราคาต่อบิลไม่ถูกต้อง)
+  // เฉลี่ยต่อบิล / maxBill = non-historical เท่านั้น
   const realTotal=real.reduce((sum,r)=>sum+(r.actual_amount||0),0);
   const avg=real.length?Math.round(realTotal/real.length):0;
   const maxBill=real.length?Math.max(...real.map(r=>r.actual_amount||0)):0;
@@ -1456,12 +1459,15 @@ function renderTrend(){
 // ── PEAK ─────────────────────────────────────────────────
 function setPeakScope(p,btn){peakScope=p;document.querySelectorAll('#page-peak>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPeak();}
 function renderPeak(){
+  // allOrders กรอง is_history ออก = บิลจริงทั้งหมดที่มี timestamp ถูกต้อง
+  const nonHist=allOrders.filter(r=>!r.is_history);
   const orders=filterByPeriod(allOrders,peakScope);
-  const realOnly=filterByPeriod(realOrders,peakScope);
-  // hour chart → realOrders only (timestamp แม่นยำ ไม่ถูก set เป็น 12:00)
-  // weekday chart → allOrders (วันที่ถูกต้อง แค่เวลาไม่ถูก)
+  const realOnly=filterByPeriod(nonHist,peakScope);
   const s=computeFrom(orders);
   const sReal=computeFrom(realOnly);
+  // DEBUG: แสดงข้อมูลชั่วคราวใต้ chart
+  const dbg=`nonHist=${nonHist.length} realOnly=${realOnly.length} byHourTotal=${sReal.byHour.reduce((a,h)=>a+h.orders,0)} sample=${nonHist[0]?JSON.stringify({ca:nonHist[0].created_at?.slice(0,19),ih:nonHist[0].is_history}):'none'}`;
+  document.getElementById('peak-debug').textContent=dbg;
   // hour chart = realOrders (timestamp แม่นยำ)
   const active=sReal.byHour.filter(h=>h.orders>0);
   const maxO=Math.max(...active.map(h=>h.orders),1);
