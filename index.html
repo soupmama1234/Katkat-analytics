@@ -487,29 +487,31 @@
           </div>
 
           <div class="form-row">
-            <label class="form-label">ยอดรวมที่จ่าย <span style="color:var(--danger)">*</span></label>
-            <input type="number" id="exp-amount-input" class="form-input" placeholder="฿ ยอดรวม" inputmode="decimal" oninput="calcPpu()" style="font-size:20px;font-weight:700;color:var(--primary)">
-            <input type="hidden" id="exp-amount">
-          </div>
-
-          <div class="form-row">
-            <label class="form-label">จำนวน + หน่วย <span style="font-weight:400;color:var(--dim)">(ไม่บังคับ — ใส่เพื่อคำนวณราคา/หน่วย)</span></label>
+            <label class="form-label">จำนวน + หน่วย <span style="color:var(--danger)">*</span></label>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <input type="number" id="exp-qty" class="form-input" placeholder="เช่น 1.5" inputmode="decimal" oninput="calcPpu()">
+              <input type="number" id="exp-qty" class="form-input" placeholder="เช่น 1.5" inputmode="decimal" oninput="calcExpAmount()">
               <div class="ac-wrap">
                 <input type="text" id="exp-unit" class="form-input" placeholder="หน่วย เช่น kg" autocomplete="off" oninput="acInput('exp-unit','exp-unit-ac',unitHistory)">
                 <div class="ac-list" id="exp-unit-ac"></div>
               </div>
             </div>
             <div class="unit-pills" id="unit-presets" style="margin-top:8px"></div>
-            <div id="ppu-display" style="display:none;margin-top:8px;background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--dim)">
-              ราคา/หน่วย: <span id="ppu-val" style="color:var(--primary);font-weight:700;font-family:'Inter',sans-serif"></span>
-            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">ราคา/หน่วย <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="exp-ppu" class="form-input" placeholder="฿ ต่อหน่วย" inputmode="decimal" oninput="calcExpAmount()" style="font-size:16px;font-weight:600">
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">ยอดรวม <span style="font-weight:400;color:var(--dim)">(คำนวณอัตโนมัติ หรือ กรอกเองได้)</span></label>
+            <input type="number" id="exp-amount-input" class="form-input" placeholder="฿ ยอดรวม" inputmode="decimal" oninput="calcExpPpuReverse()" style="font-size:20px;font-weight:700;color:var(--primary)">
+            <input type="hidden" id="exp-amount">
           </div>
 
           <div class="form-row">
             <label class="form-label">ส่วนลดท้ายบิล (ถ้ามี)</label>
-            <input type="number" id="exp-discount" class="form-input" placeholder="0" inputmode="decimal" oninput="calcPpu()">
+            <input type="number" id="exp-discount" class="form-input" placeholder="0" inputmode="decimal" oninput="calcExpAmount()">
           </div>
 
           <div class="form-row">
@@ -861,7 +863,7 @@ function selectUnit(u,btn){
   document.getElementById('exp-unit').value=u;
   document.querySelectorAll('.unit-pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  calcAmount();
+  calcExpAmount();
 }
 
 // ── AUTOCOMPLETE ──────────────────────────────────────────
@@ -880,7 +882,7 @@ function acInput(inputId,listId,history){
 function selectAc(inputId,listId,val){
   document.getElementById(inputId).value=val;
   document.getElementById(listId).style.display='none';
-  if(inputId==='exp-qty'||inputId==='exp-ppu') calcAmount();
+  if(inputId==='exp-qty'||inputId==='exp-ppu'||inputId==='exp-unit') calcExpAmount();
 }
 
 function checkSimilar(val){
@@ -896,25 +898,35 @@ function checkSimilar(val){
 }
 
 // ── CALC ─────────────────────────────────────────────────
-function calcPpu(){
+function calcExpAmount(){
+  const qty=parseFloat(document.getElementById('exp-qty').value)||0;
+  const ppu=parseFloat(document.getElementById('exp-ppu').value)||0;
+  const disc=parseFloat(document.getElementById('exp-discount').value)||0;
+  
+  if(qty>0&&ppu>0){
+    const total=qty*ppu;
+    const net=Math.max(0,total-disc);
+    document.getElementById('exp-amount-input').value=net.toFixed(2);
+    document.getElementById('exp-amount').value=net;
+  }
+}
+
+function calcExpPpuReverse(){
   const total=parseFloat(document.getElementById('exp-amount-input').value)||0;
   const qty=parseFloat(document.getElementById('exp-qty').value)||0;
   const disc=parseFloat(document.getElementById('exp-discount').value)||0;
-  const net=Math.max(0,total-disc);
-  // set hidden amount
-  document.getElementById('exp-amount').value=net||total;
-  // show ppu if qty given
-  const ppuDisplay=document.getElementById('ppu-display');
-  const ppuVal=document.getElementById('ppu-val');
-  const unit=document.getElementById('exp-unit').value||'หน่วย';
+  
+  // คำนวณ ppu ย้อนกลับจากยอดรวม
   if(qty>0&&total>0){
-    const ppu=net>0?(net/qty):(total/qty);
-    ppuVal.textContent=`฿${ppu.toFixed(2)}/${unit}`;
-    ppuDisplay.style.display='block';
+    const beforeDisc=total+disc;
+    const ppu=beforeDisc/qty;
+    document.getElementById('exp-ppu').value=ppu.toFixed(2);
+    document.getElementById('exp-amount').value=total;
   }else{
-    ppuDisplay.style.display='none';
+    document.getElementById('exp-amount').value=total;
   }
 }
+
 function calcIncAmount(){
   const qty=parseFloat(document.getElementById('inc-qty').value)||0;
   const ppu=parseFloat(document.getElementById('inc-ppu').value)||0;
@@ -988,10 +1000,9 @@ function copyExpense(idx){
   if(!e) return;
   // fill form
   document.getElementById('exp-item').value=e.item||'';
-  document.getElementById('exp-amount-input').value=e.amount||'';
-  document.getElementById('exp-amount').value=e.amount||'';
   document.getElementById('exp-qty').value=e.quantity||'';
   document.getElementById('exp-unit').value=e.unit||'';
+  document.getElementById('exp-ppu').value=e.price_per_unit||'';
   document.getElementById('exp-vendor').value=e.vendor||'';
   document.getElementById('exp-date').value=todayStr;
   if(e.payment_method) document.getElementById('exp-payment').value=e.payment_method;
@@ -1001,7 +1012,7 @@ function copyExpense(idx){
     const btn=document.querySelector(`#exp-cat-pills .cat-pill[onclick*="'${e.category}'"]`);
     if(btn&&cat) selectExpCat(e.category,btn,cat.color);
   }
-  calcPpu();
+  calcExpAmount();
   showToast('✅ Copy แล้ว — ตรวจสอบก่อนบันทึก');
   // scroll to form
   document.getElementById('exp-date').scrollIntoView({behavior:'smooth',block:'center'});
@@ -1010,22 +1021,36 @@ function copyExpense(idx){
 // ── SUBMIT EXPENSE ────────────────────────────────────────
 async function submitExpense(){
   const item=document.getElementById('exp-item').value.trim();
-  const amountRaw=parseFloat(document.getElementById('exp-amount-input').value)||0;
+  const qty=parseFloat(document.getElementById('exp-qty').value)||0;
+  const ppu=parseFloat(document.getElementById('exp-ppu').value)||0;
+  const amountInput=parseFloat(document.getElementById('exp-amount-input').value)||0;
   const disc=parseFloat(document.getElementById('exp-discount').value)||0;
-  const amount=Math.max(0,amountRaw-disc)||amountRaw;
+  
   if(!item){showToast('กรุณาใส่ชื่อรายการ','err');return;}
   if(!selectedExpCat){showToast('กรุณาเลือกหมวดหมู่','err');return;}
-  if(amount<=0){showToast('กรุณาใส่ยอดเงิน','err');return;}
+  if(qty<=0){showToast('กรุณาใส่จำนวน','err');return;}
+  if(ppu<=0&&amountInput<=0){showToast('กรุณาใส่ราคา/หน่วย หรือ ยอดรวม','err');return;}
+  
+  // คำนวณค่าที่ใช้บันทึก
+  let finalAmount, finalPpu;
+  if(amountInput>0){
+    // กรอกยอดรวมมา
+    finalAmount=Math.max(0,amountInput-disc);
+    finalPpu=qty>0?(finalAmount/qty):0;
+  }else{
+    // คำนวณจาก qty × ppu
+    const total=qty*ppu;
+    finalAmount=Math.max(0,total-disc);
+    finalPpu=ppu;
+  }
 
-  const qty=parseFloat(document.getElementById('exp-qty').value)||null;
-  const unit=document.getElementById('exp-unit').value||null;
-  const ppu=qty&&amount?Math.round((amount/qty)*100)/100:null;
+  const unit=document.getElementById('exp-unit').value.trim()||null;
 
   const row={
     date:document.getElementById('exp-date').value||todayStr,
     item,category:selectedExpCat,
-    quantity:qty,unit,price_per_unit:ppu,
-    amount,
+    quantity:qty,unit,price_per_unit:Math.round(finalPpu*100)/100,
+    amount:Math.round(finalAmount*100)/100,
     vendor:document.getElementById('exp-vendor').value.trim()||null,
     payment_method:document.getElementById('exp-payment').value||null,
     note:document.getElementById('exp-note').value.trim()||null,
@@ -1037,6 +1062,7 @@ async function submitExpense(){
     allExpenses.unshift(data);
     if(!itemHistory.includes(item)) itemHistory.push(item);
     if(row.vendor&&!vendorHistory.includes(row.vendor)) vendorHistory.push(row.vendor);
+    if(unit&&!unitHistory.includes(unit)) unitHistory.push(unit);
     showToast('✅ บันทึกแล้ว');
     resetExpForm();
     renderRecentExpenses();
@@ -1044,12 +1070,10 @@ async function submitExpense(){
 }
 
 function resetExpForm(){
-  ['exp-item','exp-qty','exp-unit','exp-discount','exp-vendor','exp-note'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('exp-amount-input').value='';
+  ['exp-item','exp-qty','exp-unit','exp-ppu','exp-amount-input','exp-discount','exp-vendor','exp-note'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('exp-date').value=todayStr;
   document.getElementById('exp-payment').value='';
   document.getElementById('exp-amount').value='';
-  document.getElementById('ppu-display').style.display='none';
   document.getElementById('cat-suggest').style.display='none';
   document.querySelectorAll('#exp-cat-pills .cat-pill').forEach(b=>{b.classList.remove('active');b.style.background='';b.style.color='';});
   document.querySelectorAll('.unit-pill').forEach(b=>b.classList.remove('active'));
