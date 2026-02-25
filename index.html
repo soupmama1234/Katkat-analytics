@@ -1455,14 +1455,26 @@ function renderTrend(){
 // ── PEAK ─────────────────────────────────────────────────
 function setPeakScope(p,btn){peakScope=p;document.querySelectorAll('#page-peak>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPeak();}
 function renderPeak(){
+  // กรอง historical orders ออกจาก hour chart
+  // สังเกตจาก created_at: historical จะเป็น timestamp ที่ลงท้ายด้วย :00+00:00 ไม่มี microseconds
+  // real orders มี microseconds เช่น 12:21:30.314335+00:00
+  const isRealOrder=r=>{
+    const ca=r.created_at||'';
+    // มี microseconds (.xxxxxx) = real order
+    if(/\.\d{3,}/.test(ca)) return true;
+    // ไม่มี microseconds = historical placeholder
+    return false;
+  };
+  const realOnly=allOrders.filter(isRealOrder);
   const orders=filterByPeriod(allOrders,peakScope);
-  const s=computeFrom(orders);
-  // hour chart = allOrders (is_history flag ไม่ถูกต้องใน DB — ทุก order มี is_history=true)
-  const active=s.byHour.filter(h=>h.orders>0);
+  const realFiltered=filterByPeriod(realOnly,peakScope);
+  const s=computeFrom(orders);       // weekday ใช้ทั้งหมด (วันที่ถูกต้อง)
+  const sReal=computeFrom(realFiltered); // hour ใช้เฉพาะ real orders
+  const active=sReal.byHour.filter(h=>h.orders>0);
   const maxO=Math.max(...active.map(h=>h.orders),1);
   if(peakChart)peakChart.destroy();
   const ctx1=document.getElementById('peak-chart').getContext('2d');
-  peakChart=new Chart(ctx1,{type:'bar',data:{labels:s.byHour.map(h=>h.hour+':00'),datasets:[{data:s.byHour.map(h=>h.orders),backgroundColor:s.byHour.map(h=>h.orders>0&&h.orders===maxO?'#FF9F0A':'rgba(255,159,10,.2)'),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:9},maxRotation:0}},y:{display:false}}}});
+  peakChart=new Chart(ctx1,{type:'bar',data:{labels:sReal.byHour.map(h=>h.hour+':00'),datasets:[{data:sReal.byHour.map(h=>h.orders),backgroundColor:sReal.byHour.map(h=>h.orders>0&&h.orders===maxO?'#FF9F0A':'rgba(255,159,10,.2)'),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:9},maxRotation:0}},y:{display:false}}}});
   document.getElementById('peak-list').innerHTML=active.length
     ?[...active].sort((a,b)=>b.orders-a.orders).map(h=>`<div class="list-row"><div class="htime">${String(h.hour).padStart(2,'0')}:00</div><div class="bar-w"><div class="bar-f" style="width:${Math.round(h.orders/maxO*100)}%;background:var(--primary)"></div></div><div class="hright"><div class="horders">${h.orders} บิล</div><div class="hrev">฿${fmt(h.revenue)}</div></div></div>`).join('')
     :'<div class="empty">ยังไม่มีข้อมูลชั่วโมง</div>';
