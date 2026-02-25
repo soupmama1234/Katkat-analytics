@@ -254,7 +254,13 @@
     .recipe-ing{font-size:11px;color:var(--dim);margin-top:4px}
     .recipe-cost-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;
       padding-top:8px;border-top:1px solid var(--border2)}
-    .ing-row{display:grid;grid-template-columns:1fr 80px 70px 28px;gap:6px;margin-bottom:8px;align-items:center}
+    .ing-row{background:var(--surface2);border-radius:12px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border2)}
+    .ing-row-top{display:grid;grid-template-columns:1fr 90px 28px;gap:6px;align-items:center}
+    .ing-row-result{font-size:11px;color:var(--dim);margin-top:6px;padding-top:6px;border-top:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
+    .ing-row-result.known{color:var(--success)}
+    .ing-row-result.unknown{color:#FF9F0A}
+    .ing-qty-unit{display:flex;gap:4px}
+    .ing-qty-unit input{flex:1;min-width:0}
     .margin-card{background:var(--surface);border-radius:16px;padding:14px 16px;margin-bottom:10px;
       border-left:4px solid var(--border)}
     .margin-card.high{border-left-color:var(--success)}
@@ -699,13 +705,32 @@
             <select id="recipe-menu-select" class="form-input" onchange="onMenuSelect()"></select>
           </div>
           <div style="font-size:13px;color:var(--dim);margin-bottom:4px">ราคาขาย: <span id="recipe-sell-price" style="color:var(--primary);font-weight:700">—</span></div>
-          <div class="sec" style="margin-top:16px;margin-bottom:8px">🥩 วัตถุดิบ</div>
+
+          <!-- GUIDE -->
+          <div style="background:#FF9F0A18;border:1px solid #FF9F0A33;border-radius:10px;padding:10px 12px;margin:12px 0;font-size:11px;color:#FF9F0A;line-height:1.7">
+            💡 <b>วิธีกรอก:</b> ใส่ชื่อวัตถุดิบ (ตรงกับที่บันทึกในต้นทุน) → ปริมาณที่ใช้ต่อ 1 จาน<br>
+            เช่น <b>หมูสามชั้น</b> ใช้ <b>0.15</b> kg · <b>ข้าว</b> ใช้ <b>200</b> g · <b>กล่อง</b> ใช้ <b>1</b> ชิ้น
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700">🥩 วัตถุดิบหลัก</div>
+            <button onclick="addIngredientRow()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:4px 12px;color:var(--primary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">+ เพิ่ม</button>
+          </div>
           <div id="ingredient-rows"></div>
-          <button onclick="addIngredientRow()" style="width:100%;background:var(--surface2);border:1px dashed var(--border2);border-radius:12px;padding:10px;color:var(--dim);font-family:inherit;font-size:13px;cursor:pointer;margin-top:8px">+ เพิ่มวัตถุดิบ</button>
-          <div style="margin-top:16px;background:var(--surface2);border-radius:12px;padding:12px" id="recipe-cost-preview">
-            <div style="font-size:12px;color:var(--dim)">ต้นทุนรวมต่อจาน</div>
-            <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:800;color:var(--danger)" id="preview-cost">฿0</div>
-            <div style="font-size:12px;color:var(--dim);margin-top:4px">Gross Margin: <span id="preview-margin" style="font-weight:700">—</span></div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
+            <div>
+              <div style="font-size:13px;font-weight:700">✨ เมนูเสริม (Modifier)</div>
+              <div style="font-size:11px;color:var(--dim)">เช่น ไข่ดาว +฿10, ไซส์ใหญ่ +฿15</div>
+            </div>
+            <button onclick="addModifierRow()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:4px 12px;color:var(--primary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">+ เพิ่ม</button>
+          </div>
+          <div id="modifier-rows"></div>
+
+          <div style="margin-top:16px;background:var(--surface2);border-radius:12px;padding:14px" id="recipe-cost-preview">
+            <div style="font-size:12px;color:var(--dim);margin-bottom:4px">ต้นทุนรวมต่อจาน (เมนูหลัก)</div>
+            <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--danger)" id="preview-cost">฿0</div>
+            <div style="font-size:12px;color:var(--dim);margin-top:6px">Gross Margin: <span id="preview-margin" style="font-weight:700">—</span></div>
           </div>
           <button onclick="saveRecipe()" class="btn-submit" style="margin-top:16px">💾 บันทึกสูตร</button>
         </div>
@@ -1418,11 +1443,19 @@ function openRecipeEdit(menuName,sellPrice){
   sel.innerHTML=`<option value="${menuName}" data-price="${sellPrice}" selected>${menuName}</option>`;
   sel.disabled=true;
   document.getElementById('recipe-sell-price').textContent=sellPrice?`฿${fmt(sellPrice)}`:'ไม่มีราคา';
-  const existing=allRecipes.filter(r=>r.menu_name===menuName);
   document.getElementById('ingredient-rows').innerHTML='';
-  if(existing.length) existing.forEach(r=>addIngredientRow(r.ingredient,r.quantity,r.unit));
+  document.getElementById('modifier-rows').innerHTML='';
+  const existing=allRecipes.filter(r=>r.menu_name===menuName);
+  const ings=existing.filter(r=>!r.is_modifier);
+  const mods=existing.filter(r=>r.is_modifier);
+  if(ings.length) ings.forEach(r=>addIngredientRow(r.ingredient,r.quantity,r.unit));
   else addIngredientRow();
-  updateCostPreview();
+  mods.forEach(r=>addModifierRow(r.ingredient,r.extra_price,r.quantity));
+  // update result rows after render
+  setTimeout(()=>{
+    document.querySelectorAll('#ingredient-rows .ing-row').forEach(row=>updateIngRow(row));
+    updateCostPreview();
+  },50);
   document.getElementById('recipe-modal').style.display='block';
 }
 
@@ -1440,15 +1473,70 @@ function onMenuSelect(){
 function addIngredientRow(ingredient='',quantity='',unit=''){
   const div=document.createElement('div');
   div.className='ing-row';
+  // auto-fill unit จาก expenses ถ้ามี
+  const knownUnit=unit||allExpenses.find(e=>e.item&&ingredient&&e.item.toLowerCase()===ingredient.toLowerCase())?.unit||'';
   div.innerHTML=`
-    <div class="ac-wrap">
-      <input type="text" class="form-input ing-name" placeholder="วัตถุดิบ" value="${ingredient}" autocomplete="off" oninput="ingAc(this);updateCostPreview()" style="font-size:12px">
-      <div class="ac-list ing-ac"></div>
+    <div class="ing-row-top">
+      <div class="ac-wrap">
+        <input type="text" class="form-input ing-name" placeholder="ชื่อวัตถุดิบ (เช่น หมูสามชั้น)" value="${ingredient}"
+          autocomplete="off" oninput="ingAc(this);updateIngRow(this.closest('.ing-row'));updateCostPreview()" style="font-size:13px">
+        <div class="ac-list"></div>
+      </div>
+      <div class="ing-qty-unit">
+        <input type="number" class="form-input ing-qty" placeholder="0" value="${quantity}"
+          inputmode="decimal" oninput="updateIngRow(this.closest('.ing-row'));updateCostPreview()" style="font-size:13px;width:56px">
+        <input type="text" class="form-input ing-unit" placeholder="หน่วย" value="${knownUnit}"
+          oninput="updateCostPreview()" style="font-size:12px;width:52px">
+      </div>
+      <button onclick="this.closest('.ing-row').remove();updateCostPreview()"
+        style="background:transparent;border:none;color:var(--danger);font-size:16px;cursor:pointer;height:36px;width:28px;flex-shrink:0">✕</button>
     </div>
-    <input type="number" class="form-input ing-qty" placeholder="จำนวน" value="${quantity}" inputmode="decimal" oninput="updateCostPreview()" style="font-size:12px">
-    <input type="text" class="form-input ing-unit" placeholder="หน่วย" value="${unit||''}" style="font-size:12px">
-    <button onclick="this.parentElement.remove();updateCostPreview()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--danger);font-size:14px;cursor:pointer;height:36px;width:28px">✕</button>`;
+    <div class="ing-row-result unknown">กรอกชื่อวัตถุดิบ...</div>`;
   document.getElementById('ingredient-rows').appendChild(div);
+}
+
+function updateIngRow(row){
+  const name=row.querySelector('.ing-name').value.trim();
+  const qty=parseFloat(row.querySelector('.ing-qty').value)||0;
+  const unitInput=row.querySelector('.ing-unit');
+  const result=row.querySelector('.ing-row-result');
+  if(!name){result.className='ing-row-result unknown';result.textContent='กรอกชื่อวัตถุดิบ...';return;}
+  const info=getIngredientPricePerUnit(name);
+  if(!info){result.className='ing-row-result unknown';result.textContent=`⚠️ "${name}" ยังไม่มีในต้นทุน — กรอกหน่วยเองแล้วระบบจะคำนวณได้เมื่อบันทึกต้นทุน`;return;}
+  // auto-fill unit ถ้ายังว่าง
+  if(!unitInput.value&&info.unit) unitInput.value=info.unit;
+  const cost=qty?info.ppu*qty:0;
+  result.className='ing-row-result known';
+  result.innerHTML=`<span>ราคา <b>฿${info.ppu.toFixed(2)}</b> / ${info.unit||'หน่วย'}</span><span style="font-family:'Inter',sans-serif">ใช้ ${qty||'?'} ${unitInput.value||info.unit} = <b style="color:var(--danger)">฿${cost.toFixed(2)}</b></span>`;
+}
+
+function addModifierRow(name='',extraPrice=0,ingCost=0){
+  const div=document.createElement('div');
+  div.className='ing-row';
+  div.innerHTML=`
+    <div class="ing-row-top">
+      <input type="text" class="form-input mod-name" placeholder="ชื่อ modifier (เช่น ไข่ดาว)" value="${name}"
+        style="font-size:13px" oninput="updateCostPreview()">
+      <div class="ing-qty-unit">
+        <div style="position:relative;flex:1">
+          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim)">+฿</span>
+          <input type="number" class="form-input mod-price" placeholder="0" value="${extraPrice||''}"
+            inputmode="decimal" style="font-size:13px;padding-left:28px" oninput="updateCostPreview()">
+        </div>
+        <div style="position:relative;flex:1">
+          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--dim)">ต้นทุน</span>
+          <input type="number" class="form-input mod-cost" placeholder="0" value="${ingCost||''}"
+            inputmode="decimal" style="font-size:13px;padding-left:44px" oninput="updateCostPreview()">
+        </div>
+      </div>
+      <button onclick="this.closest('.ing-row').remove();updateCostPreview()"
+        style="background:transparent;border:none;color:var(--danger);font-size:16px;cursor:pointer;height:36px;width:28px;flex-shrink:0">✕</button>
+    </div>
+    <div class="ing-row-result" style="color:var(--dim);font-size:11px">
+      ราคาขายเพิ่ม ${extraPrice?'฿'+extraPrice:'-'} · ต้นทุนเพิ่ม ${ingCost?'฿'+ingCost:'-'}
+      ${extraPrice&&ingCost?` · margin เสริม <b>${(((extraPrice-ingCost)/extraPrice)*100).toFixed(0)}%</b>`:''}
+    </div>`;
+  document.getElementById('modifier-rows').appendChild(div);
 }
 
 function ingAc(input){
@@ -1458,18 +1546,19 @@ function ingAc(input){
   const names=[...new Set(allExpenses.map(e=>e.item).filter(Boolean))];
   const matches=names.filter(n=>n.toLowerCase().includes(val)).slice(0,6);
   if(!matches.length){ac.style.display='none';return;}
-  ac.innerHTML=matches.map(n=>`<div class="ac-item" onclick="selectIngAc(this,'${n.replace(/'/g,"\\'")}');updateCostPreview()">${n}</div>`).join('');
+  ac.innerHTML=matches.map(n=>`<div class="ac-item" onclick="selectIngAc(this,'${n.replace(/'/g,"\\'")}');updateIngRow(this.closest('.ing-row'));updateCostPreview()">${n}</div>`).join('');
   ac.style.display='block';
 }
 function selectIngAc(el,name){
-  el.closest('.ac-wrap').querySelector('.ing-name').value=name;
-  el.closest('.ac-list').style.display='none';
+  const wrap=el.closest('.ac-wrap');
+  wrap.querySelector('.ing-name').value=name;
+  wrap.querySelector('.ac-list').style.display='none';
 }
 
 function updateCostPreview(){
-  const rows=document.querySelectorAll('#ingredient-rows .ing-row');
+  // วัตถุดิบหลัก
   let total=0;let hasUnknown=false;
-  rows.forEach(row=>{
+  document.querySelectorAll('#ingredient-rows .ing-row').forEach(row=>{
     const name=row.querySelector('.ing-name')?.value||'';
     const qty=parseFloat(row.querySelector('.ing-qty')?.value)||0;
     if(!name||!qty) return;
@@ -1477,32 +1566,41 @@ function updateCostPreview(){
     if(info) total+=info.ppu*qty;
     else if(name) hasUnknown=true;
   });
-  document.getElementById('preview-cost').textContent=`฿${total.toFixed(2)}${hasUnknown?' *':''}`;
+  document.getElementById('preview-cost').textContent=`฿${total.toFixed(2)}${hasUnknown?' ⚠️':''}`;
+  // margin
   const sel=document.getElementById('recipe-menu-select');
   const opt=sel.options[sel.selectedIndex];
   const sellPrice=parseFloat(opt?.dataset?.price||0);
   if(sellPrice&&total>0){
     const mg=((sellPrice-total)/sellPrice*100).toFixed(0);
     const color=mg>=60?'var(--success)':mg>=40?'var(--primary)':'var(--danger)';
-    document.getElementById('preview-margin').innerHTML=`<span style="color:${color}">${mg}%</span> · กำไร ฿${(sellPrice-total).toFixed(2)}`;
+    document.getElementById('preview-margin').innerHTML=
+      `<span style="color:${color};font-size:16px;font-weight:800">${mg}%</span> &nbsp;·&nbsp; ขาย ฿${sellPrice} − ต้นทุน ฿${total.toFixed(2)} = กำไร <b>฿${(sellPrice-total).toFixed(2)}</b>`;
   } else document.getElementById('preview-margin').textContent='—';
 }
 
 async function saveRecipe(){
   const menuName=currentRecipeMenu||document.getElementById('recipe-menu-select').value;
   if(!menuName){showToast('กรุณาเลือกเมนู','err');return;}
-  const rows=document.querySelectorAll('#ingredient-rows .ing-row');
-  const ingredients=[];
-  rows.forEach(row=>{
+  const rows=[];
+  // วัตถุดิบหลัก
+  document.querySelectorAll('#ingredient-rows .ing-row').forEach(row=>{
     const name=row.querySelector('.ing-name')?.value?.trim()||'';
     const qty=parseFloat(row.querySelector('.ing-qty')?.value)||0;
     const unit=row.querySelector('.ing-unit')?.value?.trim()||'';
-    if(name&&qty) ingredients.push({menu_name:menuName,ingredient:name,quantity:qty,unit});
+    if(name&&qty) rows.push({menu_name:menuName,ingredient:name,quantity:qty,unit,is_modifier:false,extra_price:0});
   });
-  if(!ingredients.length){showToast('กรุณาเพิ่มวัตถุดิบอย่างน้อย 1 อย่าง','err');return;}
+  // modifier
+  document.querySelectorAll('#modifier-rows .ing-row').forEach(row=>{
+    const name=row.querySelector('.mod-name')?.value?.trim()||'';
+    const price=parseFloat(row.querySelector('.mod-price')?.value)||0;
+    const cost=parseFloat(row.querySelector('.mod-cost')?.value)||0;
+    if(name) rows.push({menu_name:menuName,ingredient:name,quantity:cost,unit:'',is_modifier:true,extra_price:price});
+  });
+  if(!rows.filter(r=>!r.is_modifier).length){showToast('กรุณาเพิ่มวัตถุดิบอย่างน้อย 1 อย่าง','err');return;}
   try{
     await sb.from('recipes').delete().eq('menu_name',menuName);
-    const{error}=await sb.from('recipes').insert(ingredients);
+    const{error}=await sb.from('recipes').insert(rows);
     if(error) throw error;
     const{data}=await sb.from('recipes').select('*').order('menu_name');
     allRecipes=data||[];
