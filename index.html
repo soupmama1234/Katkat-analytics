@@ -1512,21 +1512,19 @@ function onMenuSelect(){
 function addIngredientRow(ingredient='',quantity='',unit=''){
   const div=document.createElement('div');
   div.className='ing-row';
-  // auto-fill unit จาก expenses ถ้ามี
   const knownUnit=unit||allExpenses.find(e=>e.item&&ingredient&&e.item.toLowerCase()===ingredient.toLowerCase())?.unit||'';
   div.innerHTML=`
     <div class="ing-row-top">
       <div class="ac-wrap">
-        <input type="text" class="form-input ing-name" placeholder="ชื่อวัตถุดิบ (เช่น หมูสามชั้น)" value="${ingredient}"
+        <input type="text" class="form-input ing-name" placeholder="ชื่อวัตถุดิบ" value="${ingredient}"
           autocomplete="off" oninput="ingAc(this);updateIngRow(this.closest('.ing-row'));updateCostPreview()" style="font-size:13px">
         <div class="ac-list"></div>
       </div>
       <div class="ing-qty-unit">
         <input type="number" class="form-input ing-qty" placeholder="0" value="${quantity}"
-          inputmode="decimal" oninput="updateIngRow(this.closest('.ing-row'));updateCostPreview()" style="font-size:13px;width:56px">
-        <input type="text" class="form-input ing-unit" placeholder="หน่วย" value="${knownUnit}"
-          oninput="updateCostPreview()" style="font-size:12px;width:52px">
+          inputmode="decimal" oninput="updateIngRow(this.closest('.ing-row'));updateCostPreview()" style="font-size:13px;width:80px">
       </div>
+      <input type="hidden" class="ing-unit" value="${knownUnit}">
       <button onclick="this.closest('.ing-row').remove();updateCostPreview()"
         style="background:transparent;border:none;color:var(--danger);font-size:16px;cursor:pointer;height:36px;width:28px;flex-shrink:0">✕</button>
     </div>
@@ -1537,18 +1535,19 @@ function addIngredientRow(ingredient='',quantity='',unit=''){
 function updateIngRow(row){
   const name=row.querySelector('.ing-name').value.trim();
   const qty=parseFloat(row.querySelector('.ing-qty').value)||0;
-  const unitInput=row.querySelector('.ing-unit');
+  const unitField=row.querySelector('.ing-unit');
   const result=row.querySelector('.ing-row-result');
   if(!name){result.className='ing-row-result unknown';result.textContent='กรอกชื่อวัตถุดิบ...';return;}
   const info=getIngredientPricePerUnit(name);
   if(!info){result.className='ing-row-result unknown';result.innerHTML=`⚠️ ไม่พบ "${name}" ในรายการต้นทุน`;return;}
-  if(!unitInput.value&&info.unit) unitInput.value=info.unit;
-  const unitLabel=unitInput.value||info.unit||'หน่วย';
+  // อัปเดต unit จาก expense เสมอ
+  unitField.value=info.unit||'';
+  const unit=info.unit||'หน่วย';
   const cost=qty?info.ppu*qty:0;
   result.className='ing-row-result known';
   result.innerHTML=qty
-    ?`<span>ราคา <b>฿${info.ppu.toFixed(2)}</b>/${info.unit||'หน่วย'} <span style="color:#555">(${info.date})</span></span><span style="font-family:'Inter',sans-serif">ใช้ ${qty} ${unitLabel} = <b style="color:var(--danger)">฿${cost.toFixed(2)}</b></span>`
-    :`<span>พบ: ฿${info.ppu.toFixed(2)}/${info.unit||'หน่วย'} <span style="color:#555">(${info.date})</span></span><span style="color:#555">← กรอกจำนวนที่ใช้ต่อจาน</span>`;
+    ?`<span>฿${info.ppu.toFixed(2)}/${unit} <span style="color:#555">(${info.date})</span></span><span style="font-family:'Inter',sans-serif">ใช้ ${qty} ${unit} = <b style="color:var(--danger)">฿${cost.toFixed(2)}</b></span>`
+    :`<span>฿${info.ppu.toFixed(2)}/${unit} <span style="color:#555">(${info.date})</span></span><span style="color:#555">← ใส่จำนวนที่ใช้ต่อจาน</span>`;
 }
 
 
