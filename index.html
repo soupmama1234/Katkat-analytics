@@ -443,12 +443,6 @@
         <div class="form-wrap">
           <div class="form-title">💸 บันทึกแบบกรอกมือ</div>
 
-          <!-- RECENT HISTORY -->
-          <div class="recent-panel" id="recent-panel" style="display:none">
-            <div class="recent-title">🕐 บันทึกล่าสุด — กดเพื่อ copy</div>
-            <div id="recent-list"></div>
-          </div>
-
           <div class="form-row">
             <label class="form-label">วันที่</label>
             <input type="date" id="exp-date" class="form-input">
@@ -463,7 +457,7 @@
           <div class="form-row">
             <label class="form-label">รายการ</label>
             <div class="ac-wrap">
-              <input type="text" id="exp-item" class="form-input" placeholder="เช่น หมูสันนอก" autocomplete="off" oninput="acInput('exp-item','exp-item-ac',itemHistory);suggestCategory(this.value)">
+              <input type="text" id="exp-item" class="form-input" placeholder="เช่น หมูสันนอก" autocomplete="off" oninput="acInput('exp-item','exp-item-ac',itemHistory);suggestCategory(this.value);autofillFromItem(this.value)">
               <div class="ac-list" id="exp-item-ac"></div>
             </div>
             <div class="warn-similar" id="warn-item"></div>
@@ -780,7 +774,6 @@ async function init(){
     buildForms();
     initTopNav();
     initApiKey();
-    renderRecentExpenses();
     renderAll();
   }catch(e){alert('Error: '+e.message);}
   finally{loader(false);}
@@ -867,6 +860,41 @@ function selectAc(inputId,listId,val){
   document.getElementById(inputId).value=val;
   document.getElementById(listId).style.display='none';
   if(inputId==='exp-qty'||inputId==='exp-ppu') calcAmount();
+  if(inputId==='exp-item'){suggestCategory(val);autofillFromItem(val,true);}
+}
+
+function autofillFromItem(val, exact=false){
+  if(!val||val.length<2) return;
+  const found=allExpenses.find(e=>e.item&&e.item.toLowerCase()===val.toLowerCase()&&e.amount);
+  if(!found) return;
+
+  const qtyEl=document.getElementById('exp-qty');
+  const unitEl=document.getElementById('exp-unit');
+  const amtInput=document.getElementById('exp-amount-input');
+
+  // autofill unit ถ้าว่าง
+  if(found.unit && unitEl && !unitEl.value){
+    unitEl.value=found.unit;
+    document.querySelectorAll('.unit-pill').forEach(b=>{
+      b.classList.toggle('active', b.textContent.trim()===found.unit);
+    });
+  }
+
+  // autofill qty ถ้าว่าง
+  if(found.quantity && qtyEl && !qtyEl.value){
+    qtyEl.value=found.quantity;
+  }
+
+  // แสดง hint ราคาล่าสุด (ไม่ autofill ยอดรวม เพราะราคาอาจเปลี่ยน)
+  const ppu=found.price_per_unit||(found.quantity&&found.amount?found.amount/found.quantity:0);
+  const ppuDisplay=document.getElementById('ppu-display');
+  const ppuVal=document.getElementById('ppu-val');
+  if(ppu&&ppuDisplay&&ppuVal){
+    const unit=found.unit||'หน่วย';
+    ppuVal.innerHTML=`<span style="color:#666">ครั้งล่าสุด</span> ฿${ppu.toFixed(2)}/${unit} · ${found.date||''}`;
+    ppuDisplay.style.display='block';
+  }
+  calcPpu();
 }
 
 function checkSimilar(val){
@@ -1025,7 +1053,6 @@ async function submitExpense(){
     if(row.vendor&&!vendorHistory.includes(row.vendor)) vendorHistory.push(row.vendor);
     showToast('✅ บันทึกแล้ว');
     resetExpForm();
-    renderRecentExpenses();
   }catch(e){showToast('❌ '+e.message,'err');}
 }
 
