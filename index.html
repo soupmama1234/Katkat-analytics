@@ -548,6 +548,7 @@
           <button class="pill" onclick="setExpListPeriod('30d',this)">เดือนนี้</button>
           <button class="pill" onclick="setExpListPeriod('all',this)">ทั้งหมด</button>
         </div>
+        <input type="text" id="exp-search" class="form-input" placeholder="🔍 ค้นหารายการ..." oninput="renderExpList()" style="margin-bottom:12px;font-size:14px">
         <div class="grid2" style="margin-bottom:12px">
           <div class="scard"><div class="scard-lbl">ค่าใช้จ่ายรวม</div><div class="scard-val red" id="el-total">฿0</div></div>
           <div class="scard"><div class="scard-lbl">จำนวนรายการ</div><div class="scard-val" id="el-cnt">0</div></div>
@@ -1123,7 +1124,13 @@ function setExpAnaPeriod(p,btn){
 
 // ── RENDER EXPENSE LIST ───────────────────────────────────
 function renderExpList(){
-  const filtered=filterExpByPeriod(allExpenses,expListPeriod);
+  const q=(document.getElementById('exp-search')?.value||'').toLowerCase().trim();
+  let filtered=filterExpByPeriod(allExpenses,expListPeriod);
+  if(q) filtered=filtered.filter(e=>
+    (e.item||'').toLowerCase().includes(q)||
+    (e.vendor||'').toLowerCase().includes(q)||
+    (e.category||'').toLowerCase().includes(q)
+  );
   const total=filtered.reduce((s,e)=>s+(e.amount||0),0);
   document.getElementById('el-total').textContent='฿'+fmt(total);
   document.getElementById('el-cnt').textContent=filtered.length;
@@ -1571,7 +1578,7 @@ function addIngredientRow(ingredient='',quantity='',unit=''){
         style="background:transparent;border:none;color:var(--danger);font-size:16px;cursor:pointer;height:36px;width:28px;flex-shrink:0">✕</button>
     </div>
     <div class="ing-row-result unknown">กรอกชื่อวัตถุดิบ...</div>`;
-  document.getElementById('ingredient-rows').appendChild(div);
+  document.getElementById('ingredient-rows').prepend(div);
 }
 
 function updateIngRow(row){
@@ -1581,21 +1588,14 @@ function updateIngRow(row){
   const result=row.querySelector('.ing-row-result');
   if(!name){result.className='ing-row-result unknown';result.textContent='กรอกชื่อวัตถุดิบ...';return;}
   const info=getIngredientPricePerUnit(name);
-  if(!info){result.className='ing-row-result unknown';result.innerHTML=`⚠️ ไม่พบ "${name}" ในรายการต้นทุน`;return;}
+  if(!info){result.className='ing-row-result unknown';result.innerHTML=`⚠️ ไม่พบ "${name}" ในต้นทุน`;return;}
   unitField.value=info.unit||'';
   const unit=info.unit||'หน่วย';
   const cost=qty?info.ppu*qty:0;
-  result.className='ing-row-result known';
-  // บรรทัด 1: ข้อมูลที่ซื้อมา
-  // บรรทัด 2: ใช้เท่าไหร่ = เท่าไหร่บาท
-  result.innerHTML=`
-    <div style="display:flex;justify-content:space-between;width:100%">
-      <span style="color:#888">ซื้อมา ${info.totalQty} ${unit} = ฿${info.totalAmount.toFixed(0)} → <b style="color:var(--text)">฿${info.ppu.toFixed(2)}/${unit}</b> <span style="color:#555">(${info.date})</span></span>
-    </div>
-    <div style="display:flex;justify-content:space-between;width:100%;margin-top:3px">
-      <span>${qty?`ใช้ <b>${qty} ${unit}</b>`:'← ใส่จำนวนที่ใช้ต่อจาน'}</span>
-      <span style="font-family:'Inter',sans-serif">${qty?`= <b style="color:var(--danger)">฿${cost.toFixed(2)}</b>`:''}</span>
-    </div>`;
+  result.className='ing-row-result '+(qty?'known':'unknown');
+  result.innerHTML=qty
+    ?`<span style="color:#666">฿${info.ppu.toFixed(2)}/${unit}</span><span>ใช้ ${qty} ${unit} = <b style="color:var(--danger);font-family:'Inter',sans-serif">฿${cost.toFixed(2)}</b></span>`
+    :`<span style="color:#666">฿${info.ppu.toFixed(2)}/${unit}</span><span>← ใส่จำนวนที่ใช้</span>`;
 }
 
 
