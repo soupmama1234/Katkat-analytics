@@ -24,12 +24,6 @@
     #app{display:flex;flex-direction:column;height:100%;max-width:500px;margin:0 auto}
     .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 24px}
 
-    /* STICKY PAGE HEADER (tabs) */
-    .sticky-tabs{position:sticky;top:0;z-index:50;background:var(--bg);padding:12px 0 8px;margin:-16px -16px 0;padding-left:16px;padding-right:16px;border-bottom:1px solid var(--border2)}
-
-    /* STICKY SAVE BUTTON */
-    .sticky-save{position:sticky;bottom:0;background:var(--bg);padding:10px 0 4px;margin:0 -16px -24px;padding-left:16px;padding-right:16px;border-top:1px solid var(--border2)}
-
     /* BOTTOM NAV */
     .bottom-nav{display:flex;background:rgba(18,18,18,0.95);backdrop-filter:blur(20px);
       -webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);
@@ -427,13 +421,11 @@
     <!-- ══ EXPENSES ══ -->
     <div id="page-expenses" class="page">
       <div class="pills">
-      <div class="sticky-tabs">
-        <div class="pills" style="margin-bottom:0">
-          <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
-          <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
-          <button class="pill" onclick="setExpView('analysis',this)">📊 วิเคราะห์</button>
-          <button class="pill" onclick="setExpView('backup',this)">💾 Backup</button>
-        </div>
+      <div class="pills">
+        <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
+        <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
+        <button class="pill" onclick="setExpView('analysis',this)">📊 วิเคราะห์</button>
+        <button class="pill" onclick="setExpView('backup',this)">💾 Backup</button>
       </div>
 
       <!-- ADD EXPENSE FORM -->
@@ -545,9 +537,7 @@
             <input type="text" id="exp-note" class="form-input" placeholder="เช่น ซื้อเผื่อวันหยุด">
           </div>
 
-          <div class="sticky-save">
-            <button class="btn-submit" onclick="submitExpense()">💾 บันทึก</button>
-          </div>
+          <button class="btn-submit" onclick="submitExpense()">💾 บันทึก</button>
         </div>
       </div>
 
@@ -606,11 +596,9 @@
 
     <!-- ══ OTHER INCOME ══ -->
     <div id="page-income" class="page">
-      <div class="sticky-tabs">
-        <div class="pills" style="margin-bottom:0">
-          <button class="pill active" onclick="setIncView('add',this)">➕ บันทึก</button>
-          <button class="pill" onclick="setIncView('list',this)">📋 รายการ</button>
-        </div>
+      <div class="pills">
+        <button class="pill active" onclick="setIncView('add',this)">➕ บันทึก</button>
+        <button class="pill" onclick="setIncView('list',this)">📋 รายการ</button>
       </div>
 
       <!-- ADD INCOME FORM -->
@@ -668,9 +656,7 @@
             <input type="text" id="inc-note" class="form-input" placeholder="ไม่บังคับ">
           </div>
 
-          <div class="sticky-save">
-            <button class="btn-submit green" onclick="submitIncome()">💾 บันทึก</button>
-          </div>
+          <button class="btn-submit green" onclick="submitIncome()">💾 บันทึก</button>
         </div>
       </div>
 
