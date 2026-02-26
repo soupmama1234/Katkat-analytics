@@ -1442,7 +1442,7 @@ function renderExpAnalysis(){
     records.sort((a,b)=>a.date.localeCompare(b.date));
     const first=records[0].ppu,last=records[records.length-1].ppu;
     const diff=last-first;const pctChg=first>0?Math.round((diff/first)*100):0;
-    const arrow=diff>0?'🔺':diff<0?'🔻':'➡️';
+    const arrow=diff>0?'▲':diff<0?'▼':'→';
     const color=diff>0?'var(--danger)':diff<0?'var(--success)':'var(--dim)';
     return`<div class="list-row">
       <div style="flex:1;min-width:0">
@@ -2256,21 +2256,44 @@ format: [{"item":"ชื่อสินค้า","quantity":จำนวน,"un
 
 function renderOcrResult(items){
   const catOptions=EXP_CATS.map(c=>`<option value="${c.key}">${c.icon} ${c.key}</option>`).join('');
-  document.getElementById('ocr-items-list').innerHTML=items.map((item,i)=>`
-    <div class="ocr-item" id="ocr-item-${i}">
-      <input type="checkbox" class="ocr-check" id="ocr-chk-${i}" checked>
-      <div class="ocr-item-info">
-        <div class="ocr-item-name">${item.item||'ไม่ระบุ'}</div>
-        <div class="ocr-item-meta">
-          ${item.quantity?`${item.quantity}${item.unit||''} · `:''}
-          ${item.vendor||''}
-          ${item.date?` · ${item.date}`:''}
-        </div>
+  document.getElementById('ocr-items-list').innerHTML=items.map((item,i)=>{
+    const ppu=item.quantity&&item.amount?Math.round((item.amount/item.quantity)*100)/100:null;
+    return `
+    <div class="ocr-item" id="ocr-item-${i}" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" class="ocr-check" id="ocr-chk-${i}" checked>
+        <div style="flex:1;font-size:14px;font-weight:700">${item.item||'ไม่ระบุ'}</div>
         <select class="ocr-cat-select" id="ocr-cat-${i}">${catOptions}</select>
       </div>
-      <div class="ocr-item-amt">฿${fmt(item.amount)}</div>
-    </div>
-  `).join('');
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding-left:30px">
+        <div>
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px">จำนวน</div>
+          <input type="number" id="ocr-qty-${i}" value="${item.quantity||''}" placeholder="qty"
+            class="form-input" style="padding:7px 8px;font-size:13px;text-align:center"
+            oninput="ocrCalcPpu(${i})">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px">หน่วย</div>
+          <input type="text" id="ocr-unit-${i}" value="${item.unit||''}" placeholder="หน่วย"
+            class="form-input" style="padding:7px 8px;font-size:13px;text-align:center">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px">ราคา/หน่วย ฿</div>
+          <input type="number" id="ocr-ppu-${i}" value="${ppu||''}" placeholder="฿/หน่วย"
+            class="form-input" style="padding:7px 8px;font-size:13px;text-align:center;color:var(--primary);font-weight:700"
+            oninput="ocrCalcTotal(${i})">
+        </div>
+      </div>
+      <div style="padding-left:30px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--dim)">ยอดรวม ฿</span>
+        <input type="number" id="ocr-amt-${i}" value="${item.amount||''}" placeholder="฿ ยอดรวม"
+          class="form-input" style="flex:1;padding:7px 8px;font-size:14px;font-weight:700;color:var(--success)"
+          oninput="ocrCalcPpuReverse(${i})">
+        ${item.vendor?`<span style="font-size:11px;color:var(--dim)">${item.vendor}</span>`:''}
+        ${item.date?`<span style="font-size:11px;color:var(--dim)">${item.date}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
 
   items.forEach((item,i)=>{
     const sel=document.getElementById(`ocr-cat-${i}`);
@@ -2280,6 +2303,25 @@ function renderOcrResult(items){
   window._ocrItems=items;
   document.getElementById('ocr-result').style.display='block';
   document.getElementById('ocr-result').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function ocrCalcPpu(i){
+  const qty=parseFloat(document.getElementById(`ocr-qty-${i}`)?.value)||0;
+  const amt=parseFloat(document.getElementById(`ocr-amt-${i}`)?.value)||0;
+  const ppuEl=document.getElementById(`ocr-ppu-${i}`);
+  if(qty>0&&amt>0&&ppuEl) ppuEl.value=(amt/qty).toFixed(2);
+}
+function ocrCalcTotal(i){
+  const qty=parseFloat(document.getElementById(`ocr-qty-${i}`)?.value)||0;
+  const ppu=parseFloat(document.getElementById(`ocr-ppu-${i}`)?.value)||0;
+  const amtEl=document.getElementById(`ocr-amt-${i}`);
+  if(qty>0&&ppu>0&&amtEl) amtEl.value=(qty*ppu).toFixed(2);
+}
+function ocrCalcPpuReverse(i){
+  const qty=parseFloat(document.getElementById(`ocr-qty-${i}`)?.value)||0;
+  const amt=parseFloat(document.getElementById(`ocr-amt-${i}`)?.value)||0;
+  const ppuEl=document.getElementById(`ocr-ppu-${i}`);
+  if(qty>0&&amt>0&&ppuEl) ppuEl.value=(amt/qty).toFixed(2);
 }
 
 function guessCategory(item){
@@ -2299,14 +2341,18 @@ async function saveOcrItems(){
     const chk=document.getElementById(`ocr-chk-${i}`);
     if(!chk?.checked) return;
     const cat=document.getElementById(`ocr-cat-${i}`)?.value||'วัตถุดิบสด';
+    const qty=parseFloat(document.getElementById(`ocr-qty-${i}`)?.value)||null;
+    const unit=document.getElementById(`ocr-unit-${i}`)?.value||item.unit||null;
+    const ppu=parseFloat(document.getElementById(`ocr-ppu-${i}`)?.value)||null;
+    const amt=parseFloat(document.getElementById(`ocr-amt-${i}`)?.value)||item.amount||0;
     toSave.push({
       date:item.date||todayStr,
       item:item.item,
       category:cat,
-      quantity:item.quantity||null,
-      unit:item.unit||null,
-      price_per_unit:item.quantity&&item.amount?Math.round((item.amount/item.quantity)*100)/100:null,
-      amount:item.amount,
+      quantity:qty,
+      unit:unit,
+      price_per_unit:ppu||(qty&&amt?Math.round((amt/qty)*100)/100:null),
+      amount:amt,
       vendor:item.vendor||null,
       note:'ocr',
     });
