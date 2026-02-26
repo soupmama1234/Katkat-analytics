@@ -2265,38 +2265,40 @@ function renderOcrResult(items){
   document.getElementById('ocr-items-list').innerHTML=items.map((item,i)=>{
     const ppu=item.quantity&&item.amount?Math.round((item.amount/item.quantity)*100)/100:null;
     return `
-    <div class="ocr-item" id="ocr-item-${i}" style="flex-direction:column;align-items:stretch;gap:8px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <input type="checkbox" class="ocr-check" id="ocr-chk-${i}" checked>
-        <div style="flex:1;font-size:14px;font-weight:700">${item.item||'ไม่ระบุ'}</div>
-        <select class="ocr-cat-select" id="ocr-cat-${i}">${catOptions}</select>
+    <div class="ocr-item" id="ocr-item-${i}" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 0">
+      <!-- row 1: checkbox + ชื่อ + category -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" class="ocr-check" id="ocr-chk-${i}" checked style="flex-shrink:0">
+        <div style="flex:1;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.item||'ไม่ระบุ'}</div>
+        <select class="ocr-cat-select" id="ocr-cat-${i}" style="flex-shrink:0;font-size:11px;padding:4px 6px;max-width:110px">${catOptions}</select>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding-left:30px">
+      <!-- row 2: qty | unit | ppu -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:5px;padding-left:26px">
         <div>
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px">จำนวน</div>
-          <input type="number" id="ocr-qty-${i}" value="${item.quantity||''}" placeholder="qty"
-            class="form-input" style="padding:7px 8px;font-size:13px;text-align:center"
+          <div style="font-size:9px;color:var(--dim);margin-bottom:2px">จำนวน</div>
+          <input type="number" id="ocr-qty-${i}" value="${item.quantity||''}" placeholder="-"
+            class="form-input" style="padding:6px;font-size:13px;text-align:center"
             oninput="ocrCalcPpu(${i})">
         </div>
         <div>
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px">หน่วย</div>
-          <input type="text" id="ocr-unit-${i}" value="${item.unit||''}" placeholder="หน่วย"
-            class="form-input" style="padding:7px 8px;font-size:13px;text-align:center">
+          <div style="font-size:9px;color:var(--dim);margin-bottom:2px">หน่วย</div>
+          <input type="text" id="ocr-unit-${i}" value="${item.unit||''}" placeholder="-"
+            class="form-input" style="padding:6px;font-size:13px;text-align:center">
         </div>
         <div>
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px">ราคา/หน่วย ฿</div>
-          <input type="number" id="ocr-ppu-${i}" value="${ppu||''}" placeholder="฿/หน่วย"
-            class="form-input" style="padding:7px 8px;font-size:13px;text-align:center;color:var(--primary);font-weight:700"
+          <div style="font-size:9px;color:var(--dim);margin-bottom:2px">฿/หน่วย</div>
+          <input type="number" id="ocr-ppu-${i}" value="${ppu||''}" placeholder="-"
+            class="form-input" style="padding:6px;font-size:13px;text-align:center;color:var(--primary);font-weight:700"
             oninput="ocrCalcTotal(${i})">
         </div>
       </div>
-      <div style="padding-left:30px;display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;color:var(--dim)">ยอดรวม ฿</span>
-        <input type="number" id="ocr-amt-${i}" value="${item.amount||''}" placeholder="฿ ยอดรวม"
-          class="form-input" style="flex:1;padding:7px 8px;font-size:14px;font-weight:700;color:var(--success)"
+      <!-- row 3: ยอดรวม + vendor + date -->
+      <div style="display:flex;align-items:center;gap:6px;padding-left:26px">
+        <span style="font-size:10px;color:var(--dim);flex-shrink:0">ยอดรวม ฿</span>
+        <input type="number" id="ocr-amt-${i}" value="${item.amount||''}" placeholder="฿"
+          class="form-input" style="flex:1;padding:6px;font-size:14px;font-weight:800;color:var(--success)"
           oninput="ocrCalcPpuReverse(${i})">
-        ${item.vendor?`<span style="font-size:11px;color:var(--dim)">${item.vendor}</span>`:''}
-        ${item.date?`<span style="font-size:11px;color:var(--dim)">${item.date}</span>`:''}
+        ${item.vendor||item.date?`<span style="font-size:10px;color:var(--dim);flex-shrink:0">${[item.vendor,item.date].filter(Boolean).join(' · ')}</span>`:''}
       </div>
     </div>`;
   }).join('');
