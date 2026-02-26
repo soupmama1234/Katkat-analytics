@@ -464,29 +464,35 @@
           </div>
 
           <div class="form-row">
-            <label class="form-label">ยอดรวมที่จ่าย <span style="color:var(--danger)">*</span></label>
-            <input type="number" id="exp-amount-input" class="form-input" placeholder="฿ ยอดรวม" inputmode="decimal" oninput="calcPpu()" style="font-size:20px;font-weight:700;color:var(--primary)">
-            <input type="hidden" id="exp-amount">
-          </div>
-
-          <div class="form-row">
-            <label class="form-label">จำนวน + หน่วย <span style="font-weight:400;color:var(--dim)">(ไม่บังคับ — ใส่เพื่อคำนวณราคา/หน่วย)</span></label>
+            <label class="form-label">จำนวน + หน่วย</label>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <input type="number" id="exp-qty" class="form-input" placeholder="เช่น 1.5" inputmode="decimal" oninput="calcPpu()">
+              <input type="number" id="exp-qty" class="form-input" placeholder="เช่น 1.5" inputmode="decimal" oninput="calcExpTotal()">
               <div class="ac-wrap">
                 <input type="text" id="exp-unit" class="form-input" placeholder="หน่วย เช่น kg" autocomplete="off" oninput="acInput('exp-unit','exp-unit-ac',unitHistory)">
                 <div class="ac-list" id="exp-unit-ac"></div>
               </div>
             </div>
             <div class="unit-pills" id="unit-presets" style="margin-top:8px"></div>
-            <div id="ppu-display" style="display:none;margin-top:8px;background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--dim)">
-              ราคา/หน่วย: <span id="ppu-val" style="color:var(--primary);font-weight:700;font-family:'Inter',sans-serif"></span>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">ราคา/หน่วย ฿</label>
+            <input type="number" id="exp-ppu-input" class="form-input" placeholder="฿ ราคาต่อหน่วย" inputmode="decimal" oninput="calcExpTotal()" style="font-size:18px;font-weight:700;color:var(--primary)">
+            <div id="ppu-last-hint" style="display:none;margin-top:6px;font-size:11px;color:var(--dim);padding:0 4px"></div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">ยอดรวม ฿ <span style="font-weight:400;color:var(--dim);font-size:10px">(คำนวณอัตโนมัติ หรือกรอกเองได้)</span></label>
+            <input type="number" id="exp-amount-input" class="form-input" placeholder="฿ ยอดรวม" inputmode="decimal" oninput="calcExpPpuReverse()" style="font-size:20px;font-weight:700;color:var(--success)">
+            <input type="hidden" id="exp-amount">
+            <div id="ppu-display" style="display:none;margin-top:6px;font-size:12px;color:var(--dim);padding:0 4px">
+              → ราคา/หน่วย: <span id="ppu-val" style="color:var(--primary);font-weight:700;font-family:'Inter',sans-serif"></span>
             </div>
           </div>
 
           <div class="form-row">
             <label class="form-label">ส่วนลดท้ายบิล (ถ้ามี)</label>
-            <input type="number" id="exp-discount" class="form-input" placeholder="0" inputmode="decimal" oninput="calcPpu()">
+            <input type="number" id="exp-discount" class="form-input" placeholder="0" inputmode="decimal" oninput="calcExpTotal()">
           </div>
 
           <div class="form-row">
@@ -870,7 +876,9 @@ function autofillFromItem(val, exact=false){
 
   const qtyEl=document.getElementById('exp-qty');
   const unitEl=document.getElementById('exp-unit');
-  const amtInput=document.getElementById('exp-amount-input');
+  const ppuEl=document.getElementById('exp-ppu-input');
+  const hintEl=document.getElementById('ppu-last-hint');
+  const ppu=found.price_per_unit||(found.quantity&&found.amount?found.amount/found.quantity:0);
 
   // autofill unit ถ้าว่าง
   if(found.unit && unitEl && !unitEl.value){
@@ -879,22 +887,21 @@ function autofillFromItem(val, exact=false){
       b.classList.toggle('active', b.textContent.trim()===found.unit);
     });
   }
-
   // autofill qty ถ้าว่าง
   if(found.quantity && qtyEl && !qtyEl.value){
     qtyEl.value=found.quantity;
   }
-
-  // แสดง hint ราคาล่าสุด (ไม่ autofill ยอดรวม เพราะราคาอาจเปลี่ยน)
-  const ppu=found.price_per_unit||(found.quantity&&found.amount?found.amount/found.quantity:0);
-  const ppuDisplay=document.getElementById('ppu-display');
-  const ppuVal=document.getElementById('ppu-val');
-  if(ppu&&ppuDisplay&&ppuVal){
-    const unit=found.unit||'หน่วย';
-    ppuVal.innerHTML=`<span style="color:#666">ครั้งล่าสุด</span> ฿${ppu.toFixed(2)}/${unit} · ${found.date||''}`;
-    ppuDisplay.style.display='block';
+  // autofill ppu ถ้าว่าง
+  if(ppu && ppuEl && !ppuEl.value){
+    ppuEl.value=ppu.toFixed(2);
   }
-  calcPpu();
+  // hint ราคาล่าสุด
+  if(ppu && hintEl){
+    const unit=found.unit||'หน่วย';
+    hintEl.innerHTML=`🕐 ครั้งล่าสุด ฿${ppu.toFixed(2)}/${unit} (${found.date||''})`;
+    hintEl.style.display='block';
+  }
+  calcExpTotal();
 }
 
 function checkSimilar(val){
@@ -909,26 +916,52 @@ function checkSimilar(val){
   }else{warn.style.display='none';}
 }
 
-// ── CALC ─────────────────────────────────────────────────
-function calcPpu(){
-  const total=parseFloat(document.getElementById('exp-amount-input').value)||0;
+// ── CALC EXPENSE (bidirectional) ─────────────────────────
+// ทิศทาง 1: qty × ppu → total
+function calcExpTotal(){
   const qty=parseFloat(document.getElementById('exp-qty').value)||0;
+  const ppu=parseFloat(document.getElementById('exp-ppu-input').value)||0;
   const disc=parseFloat(document.getElementById('exp-discount').value)||0;
-  const net=Math.max(0,total-disc);
-  // set hidden amount
-  document.getElementById('exp-amount').value=net||total;
-  // show ppu if qty given
+  const amtInput=document.getElementById('exp-amount-input');
   const ppuDisplay=document.getElementById('ppu-display');
-  const ppuVal=document.getElementById('ppu-val');
-  const unit=document.getElementById('exp-unit').value||'หน่วย';
-  if(qty>0&&total>0){
-    const ppu=net>0?(net/qty):(total/qty);
-    ppuVal.textContent=`฿${ppu.toFixed(2)}/${unit}`;
-    ppuDisplay.style.display='block';
-  }else{
+  const amtHidden=document.getElementById('exp-amount');
+
+  if(qty>0&&ppu>0){
+    const total=Math.max(0,qty*ppu-disc);
+    amtInput.value=total.toFixed(2);
+    amtHidden.value=total;
+    ppuDisplay.style.display='none'; // ไม่ต้องแสดง reverse เพราะ ppu มาจากช่องตรง
+  } else {
+    amtHidden.value=amtInput.value||'';
     ppuDisplay.style.display='none';
   }
 }
+
+// ทิศทาง 2: แก้ total เอง → คำนวณ ppu ย้อนกลับ
+function calcExpPpuReverse(){
+  const total=parseFloat(document.getElementById('exp-amount-input').value)||0;
+  const qty=parseFloat(document.getElementById('exp-qty').value)||0;
+  const disc=parseFloat(document.getElementById('exp-discount').value)||0;
+  const ppuInput=document.getElementById('exp-ppu-input');
+  const ppuDisplay=document.getElementById('ppu-display');
+  const ppuVal=document.getElementById('ppu-val');
+  const amtHidden=document.getElementById('exp-amount');
+  const unit=document.getElementById('exp-unit').value||'หน่วย';
+
+  amtHidden.value=total;
+
+  if(qty>0&&total>0){
+    const ppu=(total+disc)/qty;
+    ppuInput.value=ppu.toFixed(2);
+    ppuVal.textContent=`฿${ppu.toFixed(2)}/${unit}`;
+    ppuDisplay.style.display='block';
+  } else {
+    ppuDisplay.style.display='none';
+  }
+}
+
+// compat alias
+function calcPpu(){ calcExpTotal(); }
 function calcIncAmount(){
   const qty=parseFloat(document.getElementById('inc-qty').value)||0;
   const ppu=parseFloat(document.getElementById('inc-ppu').value)||0;
@@ -1033,7 +1066,8 @@ async function submitExpense(){
 
   const qty=parseFloat(document.getElementById('exp-qty').value)||null;
   const unit=document.getElementById('exp-unit').value||null;
-  const ppu=qty&&amount?Math.round((amount/qty)*100)/100:null;
+  const ppuFromField=parseFloat(document.getElementById('exp-ppu-input').value)||null;
+  const ppu=ppuFromField||(qty&&amount?Math.round((amount/qty)*100)/100:null);
 
   const row={
     date:document.getElementById('exp-date').value||todayStr,
@@ -1059,6 +1093,8 @@ async function submitExpense(){
 function resetExpForm(){
   ['exp-item','exp-qty','exp-unit','exp-discount','exp-vendor','exp-note'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('exp-amount-input').value='';
+  document.getElementById('exp-ppu-input').value='';
+  document.getElementById('ppu-last-hint').style.display='none';
   document.getElementById('exp-date').value=todayStr;
   document.getElementById('exp-payment').value='';
   document.getElementById('exp-amount').value='';
