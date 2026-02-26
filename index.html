@@ -423,11 +423,23 @@
           <div style="font-size:10px;color:var(--dim);margin-top:8px">เก็บในเครื่องเท่านั้น ไม่ส่งออกไปไหน</div>
         </div>
 
-        <!-- OCR BUTTON -->
-        <button class="ocr-btn" id="ocr-btn" onclick="document.getElementById('ocr-input').click()">
+        <!-- OCR CAMERA -->
+        <div id="ocr-camera-wrap" style="display:none;margin-bottom:12px">
+          <video id="ocr-video" autoplay playsinline muted
+            style="width:100%;border-radius:14px;background:#000;max-height:260px;object-fit:cover;display:block"></video>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button onclick="ocrCapture()" style="flex:2;background:#4D96FF;color:#000;border:none;border-radius:12px;padding:14px;font-size:18px;font-weight:800;cursor:pointer">📸 ถ่าย</button>
+            <button onclick="ocrCameraClose()" style="flex:1;background:var(--surface2);color:var(--dim);border:none;border-radius:12px;padding:14px;font-size:14px;cursor:pointer">ยกเลิก</button>
+          </div>
+        </div>
+        <canvas id="ocr-canvas" style="display:none"></canvas>
+
+        <button class="ocr-btn" id="ocr-btn" onclick="ocrCameraOpen()">
           <span style="font-size:22px">📷</span> ถ่ายรูป / เลือกรูปใบเสร็จ
         </button>
-        <input type="file" id="ocr-input" accept="image/*" capture="environment" onchange="handleOcrImage(this)">
+        <!-- fallback สำหรับเลือกจาก gallery -->
+        <input type="file" id="ocr-input" accept="image/*" style="display:none" onchange="handleOcrImage(this)">
+        <button onclick="document.getElementById('ocr-input').click()" style="width:100%;margin-top:6px;background:none;border:1px solid var(--border2);border-radius:12px;padding:10px;color:var(--dim);font-size:13px;cursor:pointer">🖼 เลือกจากคลัง</button>
         <img id="ocr-preview" class="ocr-preview">
 
         <!-- OCR RESULT CHECKLIST -->
@@ -2123,6 +2135,46 @@ function saveApiKey(){
   const btn=document.getElementById('ocr-btn');
   if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
   showToast('✅ บันทึก API key แล้ว');
+}
+
+// ── OCR CAMERA (live preview) ────────────────────────────
+let _ocrStream=null;
+
+async function ocrCameraOpen(){
+  const wrap=document.getElementById('ocr-camera-wrap');
+  const video=document.getElementById('ocr-video');
+  const btn=document.getElementById('ocr-btn');
+  try{
+    _ocrStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}
+    });
+    video.srcObject=_ocrStream;
+    wrap.style.display='block';
+    btn.style.display='none';
+  }catch(e){
+    // fallback → เปิด file picker แทน
+    document.getElementById('ocr-input').click();
+  }
+}
+
+function ocrCameraClose(){
+  if(_ocrStream){_ocrStream.getTracks().forEach(t=>t.stop());_ocrStream=null;}
+  document.getElementById('ocr-camera-wrap').style.display='none';
+  document.getElementById('ocr-btn').style.display='block';
+}
+
+function ocrCapture(){
+  const video=document.getElementById('ocr-video');
+  const canvas=document.getElementById('ocr-canvas');
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  canvas.getContext('2d').drawImage(video,0,0);
+  ocrCameraClose();
+  // แปลง canvas → blob แล้วส่ง pipeline เดิม
+  canvas.toBlob(blob=>{
+    const fakeInput={files:[new File([blob],'receipt.jpg',{type:'image/jpeg'})]};
+    handleOcrImage(fakeInput);
+  },'image/jpeg',0.92);
 }
 
 async function handleOcrImage(input){
