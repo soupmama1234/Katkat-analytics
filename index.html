@@ -34,6 +34,11 @@
     .bnav-btn .icon{font-size:20px;line-height:1}
     .bnav-btn.active{color:var(--primary)}
 
+    /* TOP NAV */
+    .top-nav{background:var(--bg);border-bottom:1px solid var(--border2);
+      padding:10px 16px;flex-shrink:0;display:none}
+    .top-nav.active{display:block}
+
     /* HERO */
     .hero{background:linear-gradient(145deg,#1a1a1a,#0a0a0a);border:1px solid var(--border);
       border-radius:24px;padding:24px 20px;margin-bottom:16px;text-align:center}
@@ -325,16 +330,11 @@
 <div class="toast" id="toast"></div>
 
 <div id="app">
+  <div class="top-nav" id="top-nav"></div>
   <div class="scroll-area" id="scroll-area">
 
     <!-- ══ OVERVIEW ══ -->
     <div id="page-overview" class="page active">
-      <div class="pills">
-        <button class="pill active" onclick="setOvPeriod('today',this)">วันนี้</button>
-        <button class="pill" onclick="setOvPeriod('7d',this)">7 วัน</button>
-        <button class="pill" onclick="setOvPeriod('30d',this)">30 วัน</button>
-        <button class="pill" onclick="setOvPeriod('all',this)">ทั้งหมด</button>
-      </div>
       <div class="hero">
         <div class="hero-lbl">ยอดรับจริง</div>
         <div class="hero-val" id="ov-rev">฿0</div>
@@ -375,11 +375,6 @@
     <!-- ══ TREND ══ -->
     <div id="page-trend" class="page">
       <div class="sec" style="margin-top:0">📈 แนวโน้มยอดขาย</div>
-      <div class="pills">
-        <button class="pill active" onclick="setTrendPeriod('7d',this)">7 วัน</button>
-        <button class="pill" onclick="setTrendPeriod('30d',this)">1 เดือน</button>
-        <button class="pill" onclick="setTrendPeriod('1y',this)">1 ปี</button>
-      </div>
       <div class="grid2" style="margin-bottom:12px">
         <div class="scard"><div class="scard-lbl">ยอดรวมช่วงนี้</div><div class="scard-val green" id="trend-total">฿0</div></div>
         <div class="scard"><div class="scard-lbl">เฉลี่ยต่อบิล</div><div class="scard-val" id="trend-avg">—</div></div>
@@ -404,12 +399,6 @@
     <!-- ══ PEAK ══ -->
     <div id="page-peak" class="page">
       <div class="sec" style="margin-top:0">⏰ ช่วงเวลาขายดี</div>
-      <div class="pills">
-        <button class="pill active" onclick="setPeakScope('all',this)">ทั้งหมด</button>
-        <button class="pill" onclick="setPeakScope('today',this)">วันนี้</button>
-        <button class="pill" onclick="setPeakScope('week',this)">สัปดาห์นี้</button>
-        <button class="pill" onclick="setPeakScope('month',this)">เดือนนี้</button>
-      </div>
       <div class="chart-box" style="height:190px"><canvas id="peak-chart"></canvas></div>
       <div class="sec">อันดับชั่วโมง</div>
       <div class="card-list" id="peak-list"></div>
@@ -420,12 +409,6 @@
 
     <!-- ══ EXPENSES ══ -->
     <div id="page-expenses" class="page">
-      <div class="pills">
-        <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
-        <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
-        <button class="pill" onclick="setExpView('analysis',this)">📊 วิเคราะห์</button>
-        <button class="pill" onclick="setExpView('backup',this)">💾 Backup</button>
-      </div>
 
       <!-- ADD EXPENSE FORM -->
       <div id="exp-add">
@@ -595,10 +578,6 @@
 
     <!-- ══ OTHER INCOME ══ -->
     <div id="page-income" class="page">
-      <div class="pills">
-        <button class="pill active" onclick="setIncView('add',this)">➕ บันทึก</button>
-        <button class="pill" onclick="setIncView('list',this)">📋 รายการ</button>
-      </div>
 
       <!-- ADD INCOME FORM -->
       <div id="inc-add">
@@ -671,10 +650,6 @@
 
     <!-- ══ RECIPE ══ -->
     <div id="page-recipe" class="page">
-      <div class="pills">
-        <button class="pill active" onclick="setRecipeView('list',this)">📋 สูตรอาหาร</button>
-        <button class="pill" onclick="setRecipeView('margin',this)">📊 วิเคราะห์ Margin</button>
-      </div>
 
       <!-- LIST VIEW -->
       <div id="recipe-list-view">
@@ -803,6 +778,7 @@ async function init(){
     sourceHistory=[...new Set(allIncome.map(i=>i.source).filter(Boolean))];
 
     buildForms();
+    initTopNav();
     initApiKey();
     renderRecentExpenses();
     renderAll();
@@ -823,6 +799,15 @@ function showToast(msg,type='ok'){
 }
 
 // ── BUILD FORMS ───────────────────────────────────────────
+function initTopNav(){
+  // set top-nav for currently active page
+  const activePage=document.querySelector('.page.active');
+  if(!activePage) return;
+  const id=activePage.id.replace('page-','');
+  const tn=document.getElementById('top-nav');
+  if(TOP_NAV[id]){tn.innerHTML=TOP_NAV[id];tn.classList.add('active');}
+}
+
 function buildForms(){
   // set today date
   document.getElementById('exp-date').value=todayStr;
@@ -1097,7 +1082,7 @@ function setExpView(v,btn){
   document.getElementById('exp-list').style.display=v==='list'?'block':'none';
   document.getElementById('exp-analysis').style.display=v==='analysis'?'block':'none';
   document.getElementById('exp-backup').style.display=v==='backup'?'block':'none';
-  document.querySelectorAll('#page-expenses>.pills .pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(v==='list') renderExpList();
   if(v==='analysis') requestAnimationFrame(()=>renderExpAnalysis());
@@ -1105,7 +1090,7 @@ function setExpView(v,btn){
 function setIncView(v,btn){
   document.getElementById('inc-add').style.display=v==='add'?'block':'none';
   document.getElementById('inc-list').style.display=v==='list'?'block':'none';
-  document.querySelectorAll('#page-income>.pills .pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(v==='list') renderIncList();
 }
@@ -1479,7 +1464,7 @@ function getIngredientPricePerUnit(ingredient){
 function setRecipeView(v,btn){
   document.getElementById('recipe-list-view').style.display=v==='list'?'block':'none';
   document.getElementById('recipe-margin-view').style.display=v==='margin'?'block':'none';
-  document.querySelectorAll('#page-recipe>.pills .pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(v==='list') renderRecipeList();
   if(v==='margin') renderMarginAnalysis();
@@ -1701,13 +1686,52 @@ function renderMarginAnalysis(){
   }).join('')||'<div class="empty">ยังไม่มีสูตรอาหาร</div>';
 }
 
+// Top nav content per page
+const TOP_NAV={
+  overview:`<div class="pills" style="margin-bottom:0">
+    <button class="pill active" onclick="setOvPeriod('today',this)">วันนี้</button>
+    <button class="pill" onclick="setOvPeriod('7d',this)">7 วัน</button>
+    <button class="pill" onclick="setOvPeriod('30d',this)">30 วัน</button>
+    <button class="pill" onclick="setOvPeriod('all',this)">ทั้งหมด</button>
+  </div>`,
+  trend:`<div class="pills" style="margin-bottom:0">
+    <button class="pill active" onclick="setTrendPeriod('7d',this)">7 วัน</button>
+    <button class="pill" onclick="setTrendPeriod('30d',this)">1 เดือน</button>
+    <button class="pill" onclick="setTrendPeriod('1y',this)">1 ปี</button>
+  </div>`,
+  peak:`<div class="pills" style="margin-bottom:0">
+    <button class="pill active" onclick="setPeakScope('all',this)">ทั้งหมด</button>
+    <button class="pill" onclick="setPeakScope('today',this)">วันนี้</button>
+    <button class="pill" onclick="setPeakScope('week',this)">สัปดาห์นี้</button>
+    <button class="pill" onclick="setPeakScope('month',this)">เดือนนี้</button>
+  </div>`,
+  expenses:`<div class="pills" style="margin-bottom:0">
+    <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
+    <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
+    <button class="pill" onclick="setExpView('analysis',this)">📊 วิเคราะห์</button>
+    <button class="pill" onclick="setExpView('backup',this)">💾 Backup</button>
+  </div>`,
+  recipe:`<div class="pills" style="margin-bottom:0">
+    <button class="pill active" onclick="setRecipeView('list',this)">📋 สูตรอาหาร</button>
+    <button class="pill" onclick="setRecipeView('margin',this)">📊 วิเคราะห์ Margin</button>
+  </div>`,
+  income:`<div class="pills" style="margin-bottom:0">
+    <button class="pill active" onclick="setIncView('add',this)">➕ บันทึก</button>
+    <button class="pill" onclick="setIncView('list',this)">📋 รายการ</button>
+  </div>`,
+};
+
 function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
   document.getElementById('scroll-area').scrollTop=0;
-  // re-render charts after page becomes visible (canvas needs non-zero size)
+  // update top-nav
+  const tn=document.getElementById('top-nav');
+  if(TOP_NAV[id]){tn.innerHTML=TOP_NAV[id];tn.classList.add('active');}
+  else{tn.innerHTML='';tn.classList.remove('active');}
+  // re-render charts after page becomes visible
   if(id==='peak') requestAnimationFrame(()=>renderPeak());
   if(id==='trend') requestAnimationFrame(()=>renderTrend());
   if(id==='recipe') requestAnimationFrame(()=>renderRecipeList());
@@ -1724,7 +1748,7 @@ function renderAll(){
 // ── OVERVIEW ──────────────────────────────────────────────
 function setOvPeriod(p,btn){
   ovPeriod=p;
-  document.querySelectorAll('#page-overview>.pills .pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');renderOverview();
 }
 function renderOverview(){
@@ -1800,7 +1824,7 @@ function renderModifiers(elId,orders){
 }
 
 // ── TREND ─────────────────────────────────────────────────
-function setTrendPeriod(p,btn){trendPeriod=p;document.querySelectorAll('#page-trend>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTrend();}
+function setTrendPeriod(p,btn){trendPeriod=p;document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTrend();}
 function renderTrend(){
   const period=trendPeriod==='7d'?'7d':trendPeriod==='30d'?'30d':'all';
   const orders=filterByPeriod(allOrders,period);
@@ -1880,7 +1904,7 @@ function renderTrend(){
 }
 
 // ── PEAK ─────────────────────────────────────────────────
-function setPeakScope(p,btn){peakScope=p;document.querySelectorAll('#page-peak>.pills .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPeak();}
+function setPeakScope(p,btn){peakScope=p;document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPeak();}
 function renderPeak(){
   // กรอง historical orders ออกจาก hour chart
   // สังเกตจาก created_at: historical จะเป็น timestamp ที่ลงท้ายด้วย :00+00:00 ไม่มี microseconds
