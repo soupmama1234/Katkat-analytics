@@ -1197,20 +1197,26 @@ function renderExpList(){
   document.getElementById('exp-items-list').innerHTML=filtered.length
     ?filtered.map(e=>{
         const cat=EXP_CATS.find(c=>c.key===e.category);
+        const ppu=e.price_per_unit||(e.quantity&&e.amount?e.amount/e.quantity:null);
+        const ppuStr=ppu?`฿${ppu%1===0?ppu:ppu.toFixed(2)}${e.unit?'/'+e.unit:''}`:null;
         return`<div class="exp-item" id="exp-row-${e.id}">
-          <div class="exp-top">
-            <div class="exp-name">${e.item||'-'}</div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <div class="exp-amt">-฿${fmt(e.amount)}</div>
-              <button onclick="startEditExp('${e.id}')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:3px 8px;color:var(--dim);font-size:11px;cursor:pointer;flex-shrink:0">✏️</button>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+            <div style="flex:1;min-width:0">
+              <div class="exp-name" style="margin-bottom:4px">${e.item||'-'}</div>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <span class="exp-cat" style="color:${cat?.color||'#888'}">${cat?.icon||''} ${e.category||''}</span>
+                ${e.vendor?`<span style="font-size:11px;color:var(--dim)">· ${e.vendor}</span>`:''}
+                ${e.date?`<span style="font-size:11px;color:var(--dim)">· ${e.date}</span>`:''}
+              </div>
+              ${e.quantity||ppuStr?`<div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+                ${e.quantity?`<span style="font-size:12px;color:var(--dim);background:var(--surface2);padding:2px 8px;border-radius:6px">${e.quantity}${e.unit||''}</span>`:''}
+                ${ppuStr?`<span style="font-size:12px;font-weight:700;color:var(--primary);background:var(--surface2);padding:2px 8px;border-radius:6px">฿${ppu%1===0?ppu:ppu.toFixed(2)}${e.unit?'/'+e.unit:'/หน่วย'}</span>`:''}
+              </div>`:''}
             </div>
-          </div>
-          <div class="exp-meta">
-            <span class="exp-cat" style="color:${cat?.color||'#888'}">${cat?.icon||''} ${e.category||''}</span>
-            ${e.vendor?`<span>${e.vendor}</span> · `:''}
-            ${e.quantity?`${e.quantity}${e.unit||''} · `:''}
-            ${e.date||''}
-            ${e.note?`<br>📝 ${e.note}`:''}
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+              <div class="exp-amt">-฿${fmt(e.amount)}</div>
+              <button onclick="startEditExp('${e.id}')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:3px 8px;color:var(--dim);font-size:11px;cursor:pointer">✏️</button>
+            </div>
           </div>
         </div>`;
       }).join('')
