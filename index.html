@@ -24,6 +24,12 @@
     #app{display:flex;flex-direction:column;height:100%;max-width:500px;margin:0 auto}
     .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 24px}
 
+    /* STICKY PAGE HEADER (tabs) */
+    .sticky-tabs{position:sticky;top:0;z-index:50;background:var(--bg);padding:12px 0 8px;margin:-16px -16px 0;padding-left:16px;padding-right:16px;border-bottom:1px solid var(--border2)}
+
+    /* STICKY SAVE BUTTON */
+    .sticky-save{position:sticky;bottom:0;background:var(--bg);padding:10px 0 4px;margin:0 -16px -24px;padding-left:16px;padding-right:16px;border-top:1px solid var(--border2)}
+
     /* BOTTOM NAV */
     .bottom-nav{display:flex;background:rgba(18,18,18,0.95);backdrop-filter:blur(20px);
       -webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);
@@ -421,10 +427,13 @@
     <!-- ══ EXPENSES ══ -->
     <div id="page-expenses" class="page">
       <div class="pills">
-        <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
-        <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
-        <button class="pill" onclick="setExpView('analysis',this)">📊 วิเคราะห์</button>
-        <button class="pill" onclick="setExpView('backup',this)">💾 Backup</button>
+      <div class="sticky-tabs">
+        <div class="pills" style="margin-bottom:0">
+          <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
+          <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
+          <button class="pill" onclick="setExpView('analysis',this)">📊 วิเคราะห์</button>
+          <button class="pill" onclick="setExpView('backup',this)">💾 Backup</button>
+        </div>
       </div>
 
       <!-- ADD EXPENSE FORM -->
@@ -536,7 +545,9 @@
             <input type="text" id="exp-note" class="form-input" placeholder="เช่น ซื้อเผื่อวันหยุด">
           </div>
 
-          <button class="btn-submit" onclick="submitExpense()">💾 บันทึก</button>
+          <div class="sticky-save">
+            <button class="btn-submit" onclick="submitExpense()">💾 บันทึก</button>
+          </div>
         </div>
       </div>
 
@@ -595,9 +606,11 @@
 
     <!-- ══ OTHER INCOME ══ -->
     <div id="page-income" class="page">
-      <div class="pills">
-        <button class="pill active" onclick="setIncView('add',this)">➕ บันทึก</button>
-        <button class="pill" onclick="setIncView('list',this)">📋 รายการ</button>
+      <div class="sticky-tabs">
+        <div class="pills" style="margin-bottom:0">
+          <button class="pill active" onclick="setIncView('add',this)">➕ บันทึก</button>
+          <button class="pill" onclick="setIncView('list',this)">📋 รายการ</button>
+        </div>
       </div>
 
       <!-- ADD INCOME FORM -->
@@ -655,7 +668,9 @@
             <input type="text" id="inc-note" class="form-input" placeholder="ไม่บังคับ">
           </div>
 
-          <button class="btn-submit green" onclick="submitIncome()">💾 บันทึก</button>
+          <div class="sticky-save">
+            <button class="btn-submit green" onclick="submitIncome()">💾 บันทึก</button>
+          </div>
         </div>
       </div>
 
@@ -1506,9 +1521,8 @@ function renderRecipeList(){
           <span class="recipe-tag ${hasCost?'ok':'none'}">${hasCost?`${ings.length} วัตถุดิบ`:'ยังไม่มีสูตร'}</span>
         </div>
       </div>
-      ${hasCost?`<div class="recipe-ing">${ings.map(i=>`${i.ingredient} ${i.quantity}${i.unit||''}`).join(' · ')}</div>
-      <div class="recipe-cost-row">
-        <div style="font-size:12px;color:var(--dim)">ต้นทุน: <span style="color:var(--danger);font-weight:700;font-family:'Inter',sans-serif">฿${totalCost.toFixed(2)}</span>${hasUnknown?' <span style="color:#555">*</span>':''}</div>
+      ${hasCost?`<div class="recipe-cost-row">
+        <div style="font-size:12px;color:var(--dim)">ต้นทุน: <span style="color:var(--danger);font-weight:700;font-family:'Inter',sans-serif">฿${totalCost.toFixed(2)}</span></div>
         ${margin!==null?`<div style="font-size:12px;font-weight:700;color:${mgColor}">Margin ${margin}%</div>`:''}
       </div>`:''}
       <button onclick="openRecipeEdit('${p.name.replace(/\'/g,"\\'")}',${sellPrice})" style="margin-top:10px;width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:8px;color:${hasCost?'var(--dim)':'var(--primary)'};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">${hasCost?'✏️ แก้ไขสูตร':'+ เพิ่มสูตร'}</button>
