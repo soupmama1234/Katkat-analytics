@@ -1506,8 +1506,7 @@ function renderRecipeList(){
           <span class="recipe-tag ${hasCost?'ok':'none'}">${hasCost?`${ings.length} วัตถุดิบ`:'ยังไม่มีสูตร'}</span>
         </div>
       </div>
-      ${hasCost?`<div class="recipe-ing">${ings.map(i=>`${i.ingredient} ${i.quantity}${i.unit||''}`).join(' · ')}</div>
-      <div class="recipe-cost-row">
+      ${hasCost?`<div class="recipe-cost-row">
         <div style="font-size:12px;color:var(--dim)">ต้นทุน: <span style="color:var(--danger);font-weight:700;font-family:'Inter',sans-serif">฿${totalCost.toFixed(2)}</span>${hasUnknown?' <span style="color:#555">*</span>':''}</div>
         ${margin!==null?`<div style="font-size:12px;font-weight:700;color:${mgColor}">Margin ${margin}%</div>`:''}
       </div>`:''}
