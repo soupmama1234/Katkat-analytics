@@ -2269,7 +2269,8 @@ function renderOcrResult(items){
       <!-- row 1: checkbox + ชื่อ + category -->
       <div style="display:flex;align-items:center;gap:8px">
         <input type="checkbox" class="ocr-check" id="ocr-chk-${i}" checked style="flex-shrink:0">
-        <div style="flex:1;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.item||'ไม่ระบุ'}</div>
+        <input type="text" id="ocr-name-${i}" value="${item.item||''}" placeholder="ชื่อรายการ"
+          class="form-input" style="flex:1;font-size:13px;font-weight:700;padding:5px 8px;min-width:0">
         <select class="ocr-cat-select" id="ocr-cat-${i}" style="flex-shrink:0;font-size:11px;padding:4px 6px;max-width:110px">${catOptions}</select>
       </div>
       <!-- row 2: qty | unit | ppu -->
@@ -2348,14 +2349,14 @@ async function saveOcrItems(){
   items.forEach((item,i)=>{
     const chk=document.getElementById(`ocr-chk-${i}`);
     if(!chk?.checked) return;
-    const cat=document.getElementById(`ocr-cat-${i}`)?.value||'วัตถุดิบสด';
+    const itemName=document.getElementById(`ocr-name-${i}`)?.value||item.item;
     const qty=parseFloat(document.getElementById(`ocr-qty-${i}`)?.value)||null;
     const unit=document.getElementById(`ocr-unit-${i}`)?.value||item.unit||null;
     const ppu=parseFloat(document.getElementById(`ocr-ppu-${i}`)?.value)||null;
     const amt=parseFloat(document.getElementById(`ocr-amt-${i}`)?.value)||item.amount||0;
     toSave.push({
       date:item.date||todayStr,
-      item:item.item,
+      item:itemName,
       category:cat,
       quantity:qty,
       unit:unit,
