@@ -363,6 +363,8 @@
         <div class="hero-lbl">ยอดวันนี้</div>
         <div class="hero-val" id="td-rev">฿0</div>
         <div class="hero-sub" id="td-cnt">0 ออเดอร์</div>
+      <div class="hero-range">📅 <b id="td-range-lbl">วันนี้</b></div>
+      </div>
       </div>
       <div class="grid2">
         <div class="scard"><div class="scard-lbl">เฉลี่ยต่อบิล</div><div class="scard-val" id="td-avg">฿0</div></div>
@@ -1786,6 +1788,20 @@ const TOP_NAV={
     <button class="pill" onclick="setPeakScope('week',this)">สัปดาห์นี้</button>
     <button class="pill" onclick="setPeakScope('month',this)">เดือนนี้</button>
   </div>`,
+  today:`<div style="display:flex;flex-direction:column;gap:6px;padding-bottom:2px">
+    <div class="pills" id="td-presets" style="margin-bottom:0">
+      <button class="pill active" onclick="setTodayPreset('today',this)">วันนี้</button>
+      <button class="pill" onclick="setTodayPreset('yesterday',this)">เมื่อวาน</button>
+      <button class="pill" onclick="setTodayPreset('7d',this)">7 วัน</button>
+      <button class="pill" onclick="setTodayPreset('month',this)">เดือนนี้</button>
+      <button class="pill" onclick="setTodayPreset('custom',this)">📅 กำหนดเอง</button>
+    </div>
+    <div id="td-custom-range" style="display:none;gap:8px;align-items:center;padding:6px 0">
+      <input type="date" id="td-from" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit;outline:none" onchange="applyTodayCustomRange()">
+      <span style="color:#555">—</span>
+      <input type="date" id="td-to" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit;outline:none" onchange="applyTodayCustomRange()">
+    </div>
+  </div>`,
   expenses:`<div class="pills" style="margin-bottom:0">
     <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
     <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
@@ -1856,8 +1872,44 @@ function renderOverview(){
 }
 
 // ── TODAY ─────────────────────────────────────────────────
+// ── TODAY ─────────────────────────────────────────────────
+let tdFrom=todayStr,tdTo=todayStr;
+
+function setTodayPreset(p,btn){
+  document.querySelectorAll('#td-presets .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const now=new Date();
+  const iso=d=>d.toLocaleDateString('en-CA');
+  if(p==='today'){tdFrom=tdTo=todayStr;}
+  else if(p==='yesterday'){const d=new Date(now);d.setDate(d.getDate()-1);tdFrom=tdTo=iso(d);}
+  else if(p==='7d'){const d=new Date(now);d.setDate(d.getDate()-6);tdFrom=iso(d);tdTo=todayStr;}
+  else if(p==='month'){tdFrom=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;tdTo=todayStr;}
+  const cr=document.getElementById('td-custom-range');
+  if(p==='custom'){
+    cr.style.display='flex';
+    document.getElementById('td-from').value=tdFrom;
+    document.getElementById('td-to').value=tdTo;
+  } else {
+    cr.style.display='none';
+    renderToday();
+  }
+}
+
+function applyTodayCustomRange(){
+  tdFrom=document.getElementById('td-from').value||todayStr;
+  tdTo=document.getElementById('td-to').value||todayStr;
+  if(tdFrom>tdTo)tdTo=tdFrom;
+  renderToday();
+}
+
+function filterByRange(orders,from,to){
+  const f=new Date(from+'T00:00:00');
+  const t=new Date(to+'T23:59:59');
+  return orders.filter(r=>{const d=new Date(r.created_at);return d>=f&&d<=t;});
+}
+
 function renderToday(){
-  const orders=filterByPeriod(allOrders,'today');
+  const orders=filterByRange(allOrders,tdFrom,tdTo);
   const rev=orders.reduce((s,r)=>s+(r.actual_amount||0),0);
   const cnt=orders.length;
   const menuT={};let totalItems=0;
