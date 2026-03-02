@@ -526,11 +526,17 @@
 
       <!-- LIST -->
       <div id="exp-list" style="display:none">
-        <div class="pills" style="margin-bottom:12px">
+        <div class="pills" id="expl-presets" style="margin-bottom:8px">
           <button class="pill active" onclick="setExpListPeriod('today',this)">วันนี้</button>
           <button class="pill" onclick="setExpListPeriod('7d',this)">7 วัน</button>
           <button class="pill" onclick="setExpListPeriod('30d',this)">เดือนนี้</button>
           <button class="pill" onclick="setExpListPeriod('all',this)">ทั้งหมด</button>
+          <button class="pill" onclick="setExpListPeriod('custom',this)">📅</button>
+        </div>
+        <div id="expl-cr" style="display:none;gap:8px;align-items:center;margin-bottom:4px">
+          <input type="date" id="expl-cr-f" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;outline:none" onchange="applyExpListRange()">
+          <span style="color:#555;flex-shrink:0">—</span>
+          <input type="date" id="expl-cr-t" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;outline:none" onchange="applyExpListRange()">
         </div>
         <input type="text" id="exp-search" class="form-input" placeholder="🔍 ค้นหารายการ..." oninput="renderExpList()" style="margin-bottom:12px;font-size:14px">
         <div class="grid2" style="margin-bottom:12px">
@@ -542,11 +548,17 @@
 
       <!-- ANALYSIS -->
       <div id="exp-analysis" style="display:none">
-        <div class="pills" style="margin-bottom:12px">
+        <div class="pills" id="expa-presets" style="margin-bottom:8px">
           <button class="pill active" onclick="setExpAnaPeriod('30d',this)">เดือนนี้</button>
           <button class="pill" onclick="setExpAnaPeriod('6m',this)">6 เดือน</button>
           <button class="pill" onclick="setExpAnaPeriod('1y',this)">1 ปี</button>
           <button class="pill" onclick="setExpAnaPeriod('all',this)">ทั้งหมด</button>
+          <button class="pill" onclick="setExpAnaPeriod('custom',this)">📅</button>
+        </div>
+        <div id="expa-cr" style="display:none;gap:8px;align-items:center;margin-bottom:4px">
+          <input type="date" id="expa-cr-f" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;outline:none" onchange="applyExpAnaRange()">
+          <span style="color:#555;flex-shrink:0">—</span>
+          <input type="date" id="expa-cr-t" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;outline:none" onchange="applyExpAnaRange()">
         </div>
         <div id="profit-card-wrap"></div>
         <div class="grid2">
@@ -750,19 +762,30 @@ let itemHistory=[],vendorHistory=VENDORS,unitHistory=UNIT_PRESETS,incItemHistory
 let selectedExpCat='',selectedIncCat='';
 
 // ── INIT ─────────────────────────────────────────────────
+async function fetchAllOrders(){
+  const PAGE=1000;let all=[],from=0;
+  while(true){
+    const{data,error}=await sb.from('orders').select('*').order('created_at',{ascending:false}).range(from,from+PAGE-1);
+    if(error)throw error;
+    all=[...all,...(data||[])];
+    if(!data||data.length<PAGE)break;
+    from+=PAGE;
+  }
+  return all;
+}
 async function init(){
   loader(true);
   try{
-    const[oR,pR,eR,iR,rR]=await Promise.all([
-      sb.from('orders').select('*').order('created_at',{ascending:false}),
+    const[pR,eR,iR,rR]=await Promise.all([
       sb.from('products').select('id,name,category,price').order('name'),
       sb.from('expenses').select('*').order('date',{ascending:false}),
       sb.from('other_income').select('*').order('date',{ascending:false}),
       sb.from('recipes').select('*').order('menu_name'),
     ]);
-    if(oR.error) throw oR.error;
+    const oData=await fetchAllOrders();
+    if(pR.error)throw pR.error;
     catMap={};(pR.data||[]).forEach(p=>{catMap[p.name]=p.category||'ทั่วไป';});
-    allOrders=oR.data||[];
+    allOrders=oData;
     realOrders=allOrders.filter(r=>!r.is_history);
     histOrders=allOrders.filter(r=>r.is_history);
     allExpenses=eR.data||[];
@@ -1157,23 +1180,35 @@ function setIncView(v,btn){
   btn.classList.add('active');
   if(v==='list') renderIncList();
 }
+let expListFrom=todayStr,expListTo=todayStr;
 function setExpListPeriod(p,btn){
   expListPeriod=p;
-  document.querySelectorAll('#exp-list .pills .pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#expl-presets .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderExpList();
+  if(p==='custom'){showCR('expl-cr',expListFrom,expListTo);}
+  else{hideCR('expl-cr');renderExpList();}
 }
+function applyExpListRange(){
+  const r=getCR('expl-cr-f','expl-cr-t');expListFrom=r.from;expListTo=r.to;
+  if(expListFrom>expListTo)expListTo=expListFrom;renderExpList();
+}
+let expAnaFrom=todayStr,expAnaTo=todayStr;
 function setExpAnaPeriod(p,btn){
   expAnaPeriod=p;
-  document.querySelectorAll('#exp-analysis .pills .pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#expa-presets .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderExpAnalysis();
+  if(p==='custom'){showCR('expa-cr',expAnaFrom,expAnaTo);}
+  else{hideCR('expa-cr');renderExpAnalysis();}
+}
+function applyExpAnaRange(){
+  const r=getCR('expa-cr-f','expa-cr-t');expAnaFrom=r.from;expAnaTo=r.to;
+  if(expAnaFrom>expAnaTo)expAnaTo=expAnaFrom;renderExpAnalysis();
 }
 
 // ── RENDER EXPENSE LIST ───────────────────────────────────
 function renderExpList(){
   const q=(document.getElementById('exp-search')?.value||'').toLowerCase().trim();
-  let filtered=filterExpByPeriod(allExpenses,expListPeriod);
+  let filtered=expListPeriod==='custom'?filterExpByRange(allExpenses,expListFrom,expListTo):filterExpByPeriod(allExpenses,expListPeriod);
   if(q) filtered=filtered.filter(e=>
     (e.item||'').toLowerCase().includes(q)||
     (e.vendor||'').toLowerCase().includes(q)||
@@ -1337,9 +1372,9 @@ function renderExpAnalysis(){
     '30d':'month','6m':'6m','1y':'1y','all':'all'
   }[expAnaPeriod]||'all';
 
-  const expFiltered=filterExpByPeriod(allExpenses,expAnaPeriod);
-  const ordFiltered=filterByPeriod(allOrders,ordPeriod);
-  const incFiltered=filterExpByPeriod(allIncome,expAnaPeriod);
+  const expFiltered=expAnaPeriod==='custom'?filterExpByRange(allExpenses,expAnaFrom,expAnaTo):filterExpByPeriod(allExpenses,expAnaPeriod);
+  const ordFiltered=expAnaPeriod==='custom'?filterByRange(allOrders,expAnaFrom,expAnaTo):filterByPeriod(allOrders,ordPeriod);
+  const incFiltered=expAnaPeriod==='custom'?filterExpByRange(allIncome,expAnaFrom,expAnaTo):filterExpByPeriod(allIncome,expAnaPeriod);
 
   const totalRev=ordFiltered.reduce((s,r)=>s+(r.actual_amount||0),0);
   const totalExp=expFiltered.filter(e=>e.category!=='ส่วนลด').reduce((s,e)=>s+(e.amount||0),0);
@@ -1491,6 +1526,7 @@ function filterByPeriod(orders,period){
   if(period==='week'){const d=new Date(now);const day=d.getDay();const diff=day===0?-6:1-day;d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return orders.filter(r=>new Date(r.created_at)>=d);}
   return orders;
 }
+function filterExpByRange(arr,from,to){return arr.filter(r=>r.date&&r.date>=from&&r.date<=to);}
 function filterExpByPeriod(rows,period){
   const now=new Date();
   if(period==='today') return rows.filter(r=>r.date===todayStr);
@@ -1756,24 +1792,32 @@ function renderMarginAnalysis(){
 }
 
 // Top nav content per page
+const DATE_INPUT=`style="flex:1;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;outline:none"`;
+const CUSTOM_ROW=(id,fn)=>`<div id="${id}" style="display:none;gap:8px;align-items:center"><input type="date" id="${id}-f" ${DATE_INPUT} onchange="${fn}()"><span style="color:#555;flex-shrink:0">—</span><input type="date" id="${id}-t" ${DATE_INPUT} onchange="${fn}()"></div>`;
 const TOP_NAV={
-  overview:`<div class="pills" style="margin-bottom:0">
-    <button class="pill active" onclick="setOvPeriod('today',this)">วันนี้</button>
-    <button class="pill" onclick="setOvPeriod('7d',this)">7 วัน</button>
-    <button class="pill" onclick="setOvPeriod('30d',this)">30 วัน</button>
-    <button class="pill" onclick="setOvPeriod('all',this)">ทั้งหมด</button>
-  </div>`,
-  trend:`<div class="pills" style="margin-bottom:0">
-    <button class="pill active" onclick="setTrendPeriod('7d',this)">7 วัน</button>
-    <button class="pill" onclick="setTrendPeriod('30d',this)">1 เดือน</button>
-    <button class="pill" onclick="setTrendPeriod('1y',this)">1 ปี</button>
-  </div>`,
-  peak:`<div class="pills" style="margin-bottom:0">
-    <button class="pill active" onclick="setPeakScope('all',this)">ทั้งหมด</button>
-    <button class="pill" onclick="setPeakScope('today',this)">วันนี้</button>
-    <button class="pill" onclick="setPeakScope('week',this)">สัปดาห์นี้</button>
-    <button class="pill" onclick="setPeakScope('month',this)">เดือนนี้</button>
-  </div>`,
+  overview:`<div style="display:flex;flex-direction:column;gap:6px">
+    <div class="pills" id="ov-presets" style="margin-bottom:0">
+      <button class="pill active" onclick="setOvPeriod('today',this)">วันนี้</button>
+      <button class="pill" onclick="setOvPeriod('7d',this)">7 วัน</button>
+      <button class="pill" onclick="setOvPeriod('30d',this)">30 วัน</button>
+      <button class="pill" onclick="setOvPeriod('all',this)">ทั้งหมด</button>
+      <button class="pill" onclick="setOvPeriod('custom',this)">📅</button>
+    </div>${CUSTOM_ROW('ov-cr','applyOvRange')}</div>`,
+  trend:`<div style="display:flex;flex-direction:column;gap:6px">
+    <div class="pills" id="trend-presets" style="margin-bottom:0">
+      <button class="pill active" onclick="setTrendPeriod('7d',this)">7 วัน</button>
+      <button class="pill" onclick="setTrendPeriod('30d',this)">1 เดือน</button>
+      <button class="pill" onclick="setTrendPeriod('1y',this)">1 ปี</button>
+      <button class="pill" onclick="setTrendPeriod('custom',this)">📅</button>
+    </div>${CUSTOM_ROW('trend-cr','applyTrendRange')}</div>`,
+  peak:`<div style="display:flex;flex-direction:column;gap:6px">
+    <div class="pills" id="peak-presets" style="margin-bottom:0">
+      <button class="pill active" onclick="setPeakScope('all',this)">ทั้งหมด</button>
+      <button class="pill" onclick="setPeakScope('today',this)">วันนี้</button>
+      <button class="pill" onclick="setPeakScope('week',this)">สัปดาห์นี้</button>
+      <button class="pill" onclick="setPeakScope('month',this)">เดือนนี้</button>
+      <button class="pill" onclick="setPeakScope('custom',this)">📅</button>
+    </div>${CUSTOM_ROW('peak-cr','applyPeakRange')}</div>`,
   expenses:`<div class="pills" style="margin-bottom:0">
     <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
     <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
@@ -1808,43 +1852,55 @@ function showPage(id,btn){
 }
 
 // ── RENDER ALL ────────────────────────────────────────────
-function renderAll(){
-  renderOverview();
+function renderAll(){renderOverview();
   // trend/peak charts ไม่ render ตอน init เพราะ canvas display:none → size=0
   // จะ render ตอน showPage() แทน
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────
+// ── CUSTOM RANGE HELPERS ──────────────────────────────────
+function filterByRange(arr,from,to){
+  const f=new Date(from+'T00:00:00'),t=new Date(to+'T23:59:59');
+  return arr.filter(r=>{const d=new Date(r.created_at);return d>=f&&d<=t;});
+}
+function filterExpByRange(arr,from,to){return arr.filter(r=>r.date&&r.date>=from&&r.date<=to);}
+function showCR(id,fv,tv){const el=document.getElementById(id);if(el){el.style.display='flex';document.getElementById(id+'-f').value=fv;document.getElementById(id+'-t').value=tv;}}
+function hideCR(id){const el=document.getElementById(id);if(el)el.style.display='none';}
+function getCR(fid,tid){return{from:document.getElementById(fid)?.value||todayStr,to:document.getElementById(tid)?.value||todayStr};}
+
+// ── OVERVIEW ──────────────────────────────────────────────
+let ovFrom=todayStr,ovTo=todayStr;
 function setOvPeriod(p,btn){
   ovPeriod=p;
-  document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');renderOverview();
+  document.querySelectorAll('#ov-presets .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(p==='custom'){showCR('ov-cr',ovFrom,ovTo);}
+  else{hideCR('ov-cr');renderOverview();}
+}
+function applyOvRange(){
+  const r=getCR('ov-cr-f','ov-cr-t');ovFrom=r.from;ovTo=r.to;
+  if(ovFrom>ovTo)ovTo=ovFrom;renderOverview();
 }
 function renderOverview(){
-  const orders=filterByPeriod(allOrders,ovPeriod);
+  const orders=ovPeriod==='custom'?filterByRange(allOrders,ovFrom,ovTo):filterByPeriod(allOrders,ovPeriod);
   const s=computeFrom(orders);
-  const sAll=s;
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
   const avg=orders.length?Math.round(total/orders.length):0;
+  const dayCount=Object.keys(s.dailyMap).length||1;
+  const dailyAvg=Math.round(total/dayCount);
 
-  // คำนวณ รายการทั้งหมด
-  let totalItems=0;
-  const menuT={};
+  // คำนวณ รายการทั้งหมด + item list
+  let totalItems=0;const menuT={};
   orders.forEach(r=>{
     let items=r.items;if(!items)return;
     if(typeof items==='string'){try{items=JSON.parse(items);}catch{return;}}
     if(!Array.isArray(items))return;
     items.forEach(item=>{
       const n=item.name||'ไม่ระบุ';const q=Number(item.qty||1);totalItems+=q;
-      if(!menuT[n])menuT[n]={qty:0,mods:{}};
-      menuT[n].qty+=q;
+      if(!menuT[n])menuT[n]={qty:0,mods:{}};menuT[n].qty+=q;
       if(item.selectedModifier?.name){const m=item.selectedModifier.name;menuT[n].mods[m]=(menuT[n].mods[m]||0)+q;}
     });
   });
-
-  // เฉลี่ยต่อวัน
-  const dayCount=Object.keys(sAll.dailyMap).length||1;
-  const dailyAvg=Math.round(total/dayCount);
 
   document.getElementById('ov-rev').textContent='฿'+fmt(total);
   document.getElementById('ov-cnt').textContent=fmt(orders.length)+' ออเดอร์';
@@ -1852,8 +1908,8 @@ function renderOverview(){
   document.getElementById('ov-today').textContent='฿'+fmt(computeFrom(filterByPeriod(allOrders,'today')).dailyMap[todayStr]||0);
   document.getElementById('ov-items').textContent=fmt(totalItems)+' ชิ้น';
   document.getElementById('ov-daily-avg').textContent=dailyAvg?'฿'+fmt(dailyAvg):'—';
-  document.getElementById('ov-range-lbl').textContent=periodLabel(ovPeriod);
-  renderPlatformBars('ov-platform',sAll.platformRev,sAll.platformCnt,total,sAll.posPayment);
+  document.getElementById('ov-range-lbl').textContent=ovPeriod==='custom'?`${ovFrom} – ${ovTo}`:periodLabel(ovPeriod);
+  renderPlatformBars('ov-platform',s.platformRev,s.platformCnt,total,s.posPayment);
   const top=Object.entries(s.menuCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const maxQ=top[0]?.[1]||1;
   document.getElementById('ov-menu').innerHTML=top.length?top.map(([n,q],i)=>rankRow(i,n,q,s.menuRev[n]||0,maxQ)).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
@@ -1861,15 +1917,12 @@ function renderOverview(){
   const cats=Object.entries(s.catRev).sort((a,b)=>b[1]-a[1]);
   const maxC=cats[0]?.[1]||1;
   document.getElementById('ov-cat').innerHTML=cats.length?cats.map(([c,r])=>`<div class="ccard"><div class="crow"><span class="cname">${c}</span><span class="cval">฿${fmt(r)}</span></div><div class="cbar-w"><div class="cbar" style="width:${Math.round(r/maxC*100)}%"></div></div><div class="csub">${s.catCnt[c]} รายการ</div></div>`).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
-
-  // รายการที่ขายได้ (เหมือน today เดิม)
   const sorted=Object.entries(menuT).sort((a,b)=>b[1].qty-a[1].qty);
   document.getElementById('ov-items-list').innerHTML=sorted.length?sorted.map(([n,d])=>{
     const mods=Object.entries(d.mods).map(([m,q])=>`⚙️ ${m} ×${q}`).join('  ');
     return`<div class="titem"><div class="tmain"><span class="tname">${n}</span><span class="tqty">×${d.qty}</span></div>${mods?`<div class="tmod">${mods}</div>`:''}</div>`;
   }).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
-
-  document.getElementById('ov-daily').innerHTML=Object.entries(sAll.dailyMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).map(([d,v])=>`<div class="list-row"><span class="ddate">${new Date(d).toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</span><span class="dval">฿${fmt(v)}</span></div>`).join('');
+  document.getElementById('ov-daily').innerHTML=Object.entries(s.dailyMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).map(([d,v])=>`<div class="list-row"><span class="ddate">${new Date(d).toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</span><span class="dval">฿${fmt(v)}</span></div>`).join('');
 }
 
 // ── MODIFIERS ─────────────────────────────────────────────
@@ -1902,10 +1955,21 @@ function renderModifiers(elId,orders){
 }
 
 // ── TREND ─────────────────────────────────────────────────
-function setTrendPeriod(p,btn){trendPeriod=p;document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTrend();}
+let trendFrom=todayStr,trendTo=todayStr;
+function setTrendPeriod(p,btn){
+  trendPeriod=p;
+  document.querySelectorAll('#trend-presets .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(p==='custom'){showCR('trend-cr',trendFrom,trendTo);}
+  else{hideCR('trend-cr');renderTrend();}
+}
+function applyTrendRange(){
+  const r=getCR('trend-cr-f','trend-cr-t');trendFrom=r.from;trendTo=r.to;
+  if(trendFrom>trendTo)trendTo=trendFrom;renderTrend();
+}
 function renderTrend(){
-  const period=trendPeriod==='7d'?'7d':trendPeriod==='30d'?'30d':'all';
-  const orders=filterByPeriod(allOrders,period);
+  const period=trendPeriod==='7d'?'7d':trendPeriod==='30d'?'30d':trendPeriod==='1y'?'1y':'all';
+  const orders=trendPeriod==='custom'?filterByRange(allOrders,trendFrom,trendTo):filterByPeriod(allOrders,period);
   const s=computeFrom(orders);
   const total=orders.reduce((sum,r)=>sum+(r.actual_amount||0),0);
   const avg=orders.length?Math.round(total/orders.length):0;
@@ -1982,7 +2046,18 @@ function renderTrend(){
 }
 
 // ── PEAK ─────────────────────────────────────────────────
-function setPeakScope(p,btn){peakScope=p;document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPeak();}
+let peakFrom=todayStr,peakTo=todayStr;
+function setPeakScope(p,btn){
+  peakScope=p;
+  document.querySelectorAll('#peak-presets .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(p==='custom'){showCR('peak-cr',peakFrom,peakTo);}
+  else{hideCR('peak-cr');renderPeak();}
+}
+function applyPeakRange(){
+  const r=getCR('peak-cr-f','peak-cr-t');peakFrom=r.from;peakTo=r.to;
+  if(peakFrom>peakTo)peakTo=peakFrom;renderPeak();
+}
 function renderPeak(){
   // กรอง historical orders ออกจาก hour chart
   // สังเกตจาก created_at: historical จะเป็น timestamp ที่ลงท้ายด้วย :00+00:00 ไม่มี microseconds
@@ -1995,8 +2070,8 @@ function renderPeak(){
     return false;
   };
   const realOnly=allOrders.filter(isRealOrder);
-  const orders=filterByPeriod(allOrders,peakScope);
-  const realFiltered=filterByPeriod(realOnly,peakScope);
+  const orders=peakScope==='custom'?filterByRange(allOrders,peakFrom,peakTo):filterByPeriod(allOrders,peakScope);
+  const realFiltered=peakScope==='custom'?filterByRange(realOnly,peakFrom,peakTo):filterByPeriod(realOnly,peakScope);
   const s=computeFrom(orders);       // weekday ใช้ทั้งหมด (วันที่ถูกต้อง)
   const sReal=computeFrom(realFiltered); // hour ใช้เฉพาะ real orders
   const active=sReal.byHour.filter(h=>h.orders>0);
