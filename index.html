@@ -2440,6 +2440,7 @@ async function saveOcrItems(){
     const chk=document.getElementById(`ocr-chk-${i}`);
     if(!chk?.checked) return;
     const itemName=document.getElementById(`ocr-name-${i}`)?.value||item.item;
+    const cat=document.getElementById(`ocr-cat-${i}`)?.value||guessCategory(itemName||'');
     const qty=parseFloat(document.getElementById(`ocr-qty-${i}`)?.value)||null;
     const unit=document.getElementById(`ocr-unit-${i}`)?.value||item.unit||null;
     const ppu=parseFloat(document.getElementById(`ocr-ppu-${i}`)?.value)||null;
