@@ -968,7 +968,9 @@ function autofillIncomeFromItem(val,exact=false){
   if(!found){if(hint)hint.style.display='none';return;}
 
   if(found.quantity && !document.getElementById('inc-qty').value) document.getElementById('inc-qty').value=found.quantity;
-  if(found.price_per_unit && !document.getElementById('inc-ppu-input').value) document.getElementById('inc-ppu-input').value=found.price_per_unit;
+
+  if(found.price_per_unit && !document.getElementById('inc-ppu').value) document.getElementById('inc-ppu').value=found.price_per_unit;
+
   if(found.unit && !document.getElementById('inc-unit').value) document.getElementById('inc-unit').value=found.unit;
   if(found.source && !document.getElementById('inc-source').value) document.getElementById('inc-source').value=found.source;
   if(found.category){
