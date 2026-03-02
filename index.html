@@ -2272,7 +2272,7 @@ async function handleOcrImage(input){
     const b64=await new Promise((res,rej)=>{
       const img=new Image();
       img.onload=()=>{
-        const MAX=1280; // จำกัดด้านยาวสุดที่ 1280px
+        const MAX=2560; // ขนาดใหญ่ขึ้น อ่านตัวอักษรชัดขึ้น
         let w=img.width, h=img.height;
         if(w>MAX||h>MAX){
           if(w>h){h=Math.round(h*MAX/w);w=MAX;}
@@ -2280,9 +2280,11 @@ async function handleOcrImage(input){
         }
         const canvas=document.createElement('canvas');
         canvas.width=w; canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        // quality 0.82 ลดขนาดได้ ~70% โดยยังอ่านใบเสร็จได้ชัด
-        const dataUrl=canvas.toDataURL('image/jpeg',0.82);
+        // ปรับ contrast/sharpness ก่อน render
+        const ctx=canvas.getContext('2d');
+        ctx.filter='contrast(1.15) brightness(1.05)';
+        ctx.drawImage(img,0,0,w,h);
+        const dataUrl=canvas.toDataURL('image/jpeg',0.92); // quality สูงขึ้น
         res(dataUrl.split(',')[1]);
       };
       img.onerror=rej;
@@ -2290,15 +2292,8 @@ async function handleOcrImage(input){
     });
     // ────────────────────────────────────────────────────
 
-    const prompt=`อ่านใบเสร็จนี้แล้ว return JSON array เท่านั้น ไม่ต้องมีข้อความอื่น
-format: [{"item":"ชื่อสินค้า","quantity":จำนวน,"unit":"หน่วย","amount":ราคารวม,"vendor":"ชื่อร้าน","date":"YYYY-MM-DD"}]
-- item: ชื่อสินค้าภาษาไทยหรืออังกฤษตามใบเสร็จ
-- quantity: น้ำหนักหรือจำนวน (ตัวเลข)
-- unit: kg/g/ชิ้น/แพ็ค ฯลฯ
-- amount: ราคารวมของสินค้านั้น (ตัวเลข ไม่มี ฿)
-- vendor: ชื่อร้าน
-- date: วันที่ในใบเสร็จ format YYYY-MM-DD ถ้าไม่มีใส่ null
-ถ้าอ่านไม่ออกหรือไม่ใช่ใบเสร็จให้ return []`;
+    const knownItems=itemHistory.length?'\nรายการวัตถุดิบที่เคยซื้อในระบบ (ใช้ match ชื่อถ้าตรงหรือใกล้เคียง): '+itemHistory.slice(0,40).join(', '):'';
+    const prompt='คุณคือระบบอ่านใบเสร็จสำหรับร้านอาหารไทย (ร้านคัตสึ) อ่านใบเสร็จ/บิลซื้อวัตถุดิบนี้ให้ครบถ้วน'+knownItems+'\n\nreturn JSON array เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown\nformat: [{"item":"ชื่อสินค้า","quantity":จำนวน,"unit":"หน่วย","amount":ราคารวม,"vendor":"ชื่อร้าน","date":"YYYY-MM-DD"}]\n\nกฎสำคัญ:\n- item: ชื่อวัตถุดิบ/สินค้า ถ้าตรงหรือใกล้เคียงรายการในระบบให้ใช้ชื่อในระบบ\n- quantity: น้ำหนักหรือจำนวนเป็นตัวเลข (ไม่มีหน่วย)\n- unit: เช่น kg/g/ชิ้น/แพ็ค/กก/ถุง\n- amount: ราคารวมของรายการนั้น เป็นตัวเลขไม่มีสัญลักษณ์\n- vendor: ชื่อร้าน/ซัพพลายเออร์จากหัวบิล\n- date: YYYY-MM-DD ถ้าไม่มีใส่ null\n- แตกรายการหลายชิ้นเป็น array หลาย object\n- ถ้าอ่านไม่ออกหรือไม่ใช่ใบเสร็จให้ return []';
 
     const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`,{
       method:'POST',
@@ -2341,8 +2336,12 @@ function renderOcrResult(items){
       <!-- row 1: checkbox + ชื่อ + category -->
       <div style="display:flex;align-items:center;gap:8px">
         <input type="checkbox" class="ocr-check" id="ocr-chk-${i}" checked style="flex-shrink:0">
-        <input type="text" id="ocr-name-${i}" value="${item.item||''}" placeholder="ชื่อรายการ"
-          class="form-input" style="flex:1;font-size:13px;font-weight:700;padding:5px 8px;min-width:0">
+        <div style="position:relative;flex:1;min-width:0">
+          <input type="text" id="ocr-name-${i}" value="${item.item||''}" placeholder="ชื่อรายการ"
+            class="form-input" style="width:100%;box-sizing:border-box;font-size:13px;font-weight:700;padding:5px 8px"
+            oninput="ocrNameSuggest(${i})" autocomplete="off">
+          <div id="ocr-ac-${i}" class="ac-list" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;max-height:160px;overflow-y:auto"></div>
+        </div>
         <select class="ocr-cat-select" id="ocr-cat-${i}" style="flex-shrink:0;font-size:11px;padding:4px 6px;max-width:110px">${catOptions}</select>
       </div>
       <!-- row 2: qty | unit | ppu -->
@@ -2384,6 +2383,25 @@ function renderOcrResult(items){
   window._ocrItems=items;
   document.getElementById('ocr-result').style.display='block';
   document.getElementById('ocr-result').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function ocrNameSuggest(i){
+  const inp=document.getElementById(`ocr-name-${i}`);
+  const ac=document.getElementById(`ocr-ac-${i}`);
+  if(!inp||!ac)return;
+  const q=inp.value.toLowerCase().trim();
+  if(!q){ac.style.display='none';return;}
+  const matches=itemHistory.filter(x=>x.toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){ac.style.display='none';return;}
+  ac.innerHTML=matches.map(m=>`<div class="ac-item" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border2)" onclick="ocrNamePick(${i},'${m.replace(/'/g,"\\'")}')">
+    ${m.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<b>$1</b>')}</div>`).join('');
+  ac.style.display='block';
+}
+function ocrNamePick(i,val){
+  const inp=document.getElementById(`ocr-name-${i}`);
+  const ac=document.getElementById(`ocr-ac-${i}`);
+  if(inp)inp.value=val;
+  if(ac)ac.style.display='none';
 }
 
 function ocrCalcPpu(i){
