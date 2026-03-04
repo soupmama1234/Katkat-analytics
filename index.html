@@ -597,11 +597,6 @@
         <div class="form-wrap">
           <div class="form-title">💚 บันทึกรายได้อื่น</div>
 
-          <div class="recent-panel" id="inc-recent-panel" style="display:none">
-            <div class="recent-title">🕘 รายการล่าสุด (แตะเพื่อคัดลอก)</div>
-            <div id="inc-recent-list"></div>
-          </div>
-
           <div class="form-row">
             <label class="form-label">วันที่</label>
             <input type="date" id="inc-date" class="form-input">
@@ -615,33 +610,28 @@
           <div class="form-row">
             <label class="form-label">รายการ</label>
             <div class="ac-wrap">
-              <input type="text" id="inc-item" class="form-input" placeholder="เช่น ขายน้ำมันทอด" autocomplete="off" oninput="acInput('inc-item','inc-item-ac',incItemHistory);autofillIncomeFromItem(this.value)">
+              <input type="text" id="inc-item" class="form-input" placeholder="เช่น ขายน้ำมันทอด" autocomplete="off" oninput="acInput('inc-item','inc-item-ac',incItemHistory)">
               <div class="ac-list" id="inc-item-ac"></div>
             </div>
-            <div id="inc-last-hint" style="display:none;margin-top:6px;font-size:11px;color:var(--dim);padding:0 4px"></div>
           </div>
 
           <div class="form-row">
-            <label class="form-label">จำนวน + หน่วย</label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <input type="number" id="inc-qty" class="form-input" placeholder="เช่น 1.5" inputmode="decimal" oninput="calcIncTotal()">
-              <input type="text" id="inc-unit" class="form-input" placeholder="หน่วย เช่น kg" autocomplete="off" oninput="calcIncPpuReverse()">
+            <label class="form-label">จำนวน × ราคา/หน่วย</label>
+            <div class="row2">
+              <input type="number" id="inc-qty" class="form-input" placeholder="จำนวน" inputmode="decimal" oninput="calcIncAmount()">
+              <input type="number" id="inc-ppu" class="form-input" placeholder="ราคา/หน่วย" inputmode="decimal" oninput="calcIncAmount()">
             </div>
-            <div class="unit-pills" id="inc-unit-presets" style="margin-top:8px"></div>
           </div>
 
           <div class="form-row">
-            <label class="form-label">ราคา/หน่วย ฿</label>
-            <input type="number" id="inc-ppu-input" class="form-input" placeholder="฿ ราคาต่อหน่วย" inputmode="decimal" oninput="calcIncTotal()" style="font-size:18px;font-weight:700;color:var(--success)">
+            <label class="form-label">หน่วย</label>
+            <input type="text" id="inc-unit" class="form-input" placeholder="เช่น ลิตร, kg">
           </div>
 
           <div class="form-row">
-            <label class="form-label">ยอดรวม ฿ <span style="font-weight:400;color:var(--dim);font-size:10px">(คำนวณอัตโนมัติ หรือกรอกเองได้)</span></label>
-            <input type="number" id="inc-amount-input" class="form-input" placeholder="฿ ยอดรวม" inputmode="decimal" oninput="calcIncPpuReverse()" style="font-size:20px;font-weight:700;color:var(--success)">
+            <label class="form-label">ยอดรวม</label>
+            <div class="calc-display" id="inc-amount-display">฿0</div>
             <input type="hidden" id="inc-amount">
-            <div id="inc-ppu-display" style="display:none;margin-top:6px;font-size:12px;color:var(--dim);padding:0 4px">
-              → ราคา/หน่วย: <span id="inc-ppu-val" style="color:var(--success);font-weight:700;font-family:'Inter',sans-serif"></span>
-            </div>
           </div>
 
           <div class="form-row">
@@ -762,7 +752,7 @@ const EXP_CATS=[
   {key:'ส่วนลด',icon:'🏷',color:'#00C7BE'},
   {key:'อื่นๆ',icon:'📦',color:'#8E8E93'},
 ];
-const INC_CATS=['ขายของเหลือ','ส่วนลด','รายได้อื่น'];
+const INC_CATS=['ขายของเหลือ','รายได้อื่น'];
 const UNIT_PRESETS=['kg','g','ลิตร','ชิ้น','แพ็ค','ถัง','ขวด','กล่อง'];
 const VENDORS=['Makro','Go Wholesale','Shopee','Lotus','Lazada','Rimping','Tops','YOK','7-11','ข้าวแม่ริมอินเตอร์ฟู้ด','CP Fresh Mart','Mr. DIY'];
 
@@ -862,11 +852,6 @@ function buildForms(){
   up.innerHTML=UNIT_PRESETS.map(u=>`
     <button class="unit-pill" onclick="selectUnit('${u}',this)">${u}</button>
   `).join('');
-
-  const iup=document.getElementById('inc-unit-presets');
-  iup.innerHTML=UNIT_PRESETS.map(u=>`
-    <button class="unit-pill" onclick="selectIncUnit('${u}',this)">${u}</button>
-  `).join('');
 }
 
 function selectExpCat(cat,btn,color){
@@ -882,15 +867,9 @@ function selectIncCat(cat,btn){
 }
 function selectUnit(u,btn){
   document.getElementById('exp-unit').value=u;
-  document.querySelectorAll('#unit-presets .unit-pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.unit-pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   calcAmount();
-}
-function selectIncUnit(u,btn){
-  document.getElementById('inc-unit').value=u;
-  document.querySelectorAll('#inc-unit-presets .unit-pill').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  calcIncPpuReverse();
 }
 
 // ── AUTOCOMPLETE ──────────────────────────────────────────
@@ -911,7 +890,6 @@ function selectAc(inputId,listId,val){
   document.getElementById(listId).style.display='none';
   if(inputId==='exp-qty'||inputId==='exp-ppu') calcAmount();
   if(inputId==='exp-item'){suggestCategory(val);autofillFromItem(val,true);}
-  if(inputId==='inc-item') autofillIncomeFromItem(val,true);
 }
 
 function autofillFromItem(val, exact=false){
@@ -961,28 +939,6 @@ function checkSimilar(val){
   }else{warn.style.display='none';}
 }
 
-function autofillIncomeFromItem(val,exact=false){
-  if(!val||val.length<2) return;
-  const found=allIncome.find(i=>i.item&&i.item.toLowerCase()===val.toLowerCase()&&(i.amount||i.price_per_unit||i.quantity));
-  const hint=document.getElementById('inc-last-hint');
-  if(!found){if(hint)hint.style.display='none';return;}
-
-  if(found.quantity && !document.getElementById('inc-qty').value) document.getElementById('inc-qty').value=found.quantity;
-  if(found.price_per_unit && !document.getElementById('inc-ppu-input').value) document.getElementById('inc-ppu-input').value=found.price_per_unit;
-  if(found.unit && !document.getElementById('inc-unit').value) document.getElementById('inc-unit').value=found.unit;
-  if(found.source && !document.getElementById('inc-source').value) document.getElementById('inc-source').value=found.source;
-  if(found.category){
-    const btn=document.querySelector(`#inc-cat-pills .cat-pill[onclick*="'${found.category}'"]`);
-    if(btn) selectIncCat(found.category,btn);
-  }
-  if(hint){
-    const ppu=found.price_per_unit?`฿${fmt(found.price_per_unit)}/${found.unit||'หน่วย'}`:'-';
-    hint.textContent=`🕐 ล่าสุด ${ppu} · ฿${fmt(found.amount||0)} (${found.date||''})`;
-    hint.style.display='block';
-  }
-  calcIncAmount();
-}
-
 // ── CALC EXPENSE (bidirectional) ─────────────────────────
 // ทิศทาง 1: qty × ppu → total
 function calcExpTotal(){
@@ -1029,46 +985,13 @@ function calcExpPpuReverse(){
 
 // compat alias
 function calcPpu(){ calcExpTotal(); }
-function calcIncTotal(){
+function calcIncAmount(){
   const qty=parseFloat(document.getElementById('inc-qty').value)||0;
-  const ppu=parseFloat(document.getElementById('inc-ppu-input').value)||0;
-  const amtInput=document.getElementById('inc-amount-input');
-  const amtHidden=document.getElementById('inc-amount');
-  const ppuDisplay=document.getElementById('inc-ppu-display');
-
-  if(qty>0&&ppu>0){
-    const total=qty*ppu;
-    amtInput.value=total.toFixed(2);
-    amtHidden.value=total;
-    ppuDisplay.style.display='none';
-  }else{
-    amtHidden.value=amtInput.value||'';
-    ppuDisplay.style.display='none';
-  }
+  const ppu=parseFloat(document.getElementById('inc-ppu').value)||0;
+  const amt=qty*ppu;
+  document.getElementById('inc-amount').value=amt;
+  document.getElementById('inc-amount-display').textContent='฿'+fmt(amt);
 }
-
-function calcIncPpuReverse(){
-  const total=parseFloat(document.getElementById('inc-amount-input').value)||0;
-  const qty=parseFloat(document.getElementById('inc-qty').value)||0;
-  const ppuInput=document.getElementById('inc-ppu-input');
-  const ppuDisplay=document.getElementById('inc-ppu-display');
-  const ppuVal=document.getElementById('inc-ppu-val');
-  const amtHidden=document.getElementById('inc-amount');
-  const unit=document.getElementById('inc-unit').value||'หน่วย';
-
-  amtHidden.value=total;
-
-  if(qty>0&&total>0){
-    const ppu=total/qty;
-    ppuInput.value=ppu.toFixed(2);
-    ppuVal.textContent=`฿${ppu.toFixed(2)}/${unit}`;
-    ppuDisplay.style.display='block';
-  }else{
-    ppuDisplay.style.display='none';
-  }
-}
-
-function calcIncAmount(){ calcIncTotal(); }
 
 // ── CATEGORY SUGGEST ──────────────────────────────────────
 function suggestCategory(val){
@@ -1154,45 +1077,6 @@ function copyExpense(idx){
   document.getElementById('exp-date').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
-function renderRecentIncome(){
-  const recent=allIncome.slice(0,8);
-  const panel=document.getElementById('inc-recent-panel');
-  const list=document.getElementById('inc-recent-list');
-  if(!panel||!list) return;
-  if(!recent.length){panel.style.display='none';return;}
-  panel.style.display='block';
-  list.innerHTML=recent.map((i,idx)=>{
-    const meta=[i.category,i.source,i.quantity?`${i.quantity}${i.unit||''}`:null,i.date].filter(Boolean).join(' · ');
-    return `<div class="recent-item" onclick="copyIncome(${idx})">
-      <div class="recent-info">
-        <div class="recent-name">${i.item||'-'}</div>
-        <div class="recent-meta">${meta}</div>
-      </div>
-      <div class="recent-amt" style="color:var(--success)">+฿${fmt(i.amount||0)}</div>
-      <div class="recent-copy">copy</div>
-    </div>`;
-  }).join('');
-}
-
-function copyIncome(idx){
-  const i=allIncome[idx];
-  if(!i) return;
-  document.getElementById('inc-date').value=todayStr;
-  document.getElementById('inc-item').value=i.item||'';
-  document.getElementById('inc-qty').value=i.quantity||'';
-  document.getElementById('inc-ppu-input').value=i.price_per_unit||'';
-  document.getElementById('inc-unit').value=i.unit||'';
-  document.getElementById('inc-source').value=i.source||'';
-  document.getElementById('inc-note').value=i.note||'';
-  if(i.category){
-    const btn=document.querySelector(`#inc-cat-pills .cat-pill[onclick*="'${i.category}'"]`);
-    if(btn) selectIncCat(i.category,btn);
-  }
-  calcIncAmount();
-  showToast('✅ คัดลอกข้อมูลรายได้แล้ว — ตรวจสอบก่อนบันทึก');
-  document.getElementById('inc-date').scrollIntoView({behavior:'smooth',block:'center'});
-}
-
 // ── SUBMIT EXPENSE ────────────────────────────────────────
 async function submitExpense(){
   const item=document.getElementById('exp-item').value.trim();
@@ -1258,7 +1142,7 @@ async function submitIncome(){
     category:selectedIncCat||'รายได้อื่น',
     quantity:parseFloat(document.getElementById('inc-qty').value)||null,
     unit:document.getElementById('inc-unit').value||null,
-    price_per_unit:parseFloat(document.getElementById('inc-ppu-input').value)||null,
+    price_per_unit:parseFloat(document.getElementById('inc-ppu').value)||null,
     amount:amount,
     source:document.getElementById('inc-source').value.trim()||null,
     note:document.getElementById('inc-note').value.trim()||null,
@@ -1269,14 +1153,12 @@ async function submitIncome(){
     if(error) throw error;
     allIncome.unshift(data);
     if(!incItemHistory.includes(item)) incItemHistory.push(item);
-    if(row.source&&!sourceHistory.includes(row.source)) sourceHistory.push(row.source);
     showToast('✅ บันทึกแล้ว');
-    ['inc-item','inc-qty','inc-ppu-input','inc-unit','inc-source','inc-note','inc-amount-input'].forEach(id=>document.getElementById(id).value='');
+    ['inc-item','inc-qty','inc-ppu','inc-unit','inc-source','inc-note'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('inc-amount').value='';
-    document.getElementById('inc-last-hint').style.display='none';
+    document.getElementById('inc-amount-display').textContent='฿0';
     selectedIncCat='';
     document.querySelectorAll('#inc-cat-pills .cat-pill').forEach(b=>{b.classList.remove('active');b.style.background='';b.style.color='';});
-    renderRecentIncome();
   }catch(e){showToast('❌ '+e.message,'err');}
 }
 
@@ -1296,7 +1178,6 @@ function setIncView(v,btn){
   document.getElementById('inc-list').style.display=v==='list'?'block':'none';
   document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(v==='add') renderRecentIncome();
   if(v==='list') renderIncList();
 }
 let expListFrom=todayStr,expListTo=todayStr;
@@ -1539,11 +1420,6 @@ function renderExpAnalysis(){
   const mRev=months.map(m=>Math.round(revByMonth[m]||0));
   const mExp=months.map(m=>Math.round(expByMonth[m]||0));
 
-  // แกน Y แบบยืดหยุ่น: คำนวณช่วงตามข้อมูลจริง + headroom
-  const yMaxData=Math.max(...mRev,...mExp,0);
-  const yHeadroom=yMaxData>0?Math.ceil(yMaxData*0.1):100;
-  const yMax=yMaxData+yHeadroom;
-
   if(anaChart)anaChart.destroy();
   const ctx=document.getElementById('ana-chart').getContext('2d');
   anaChart=new Chart(ctx,{
@@ -1560,19 +1436,7 @@ function renderExpAnalysis(){
       plugins:{legend:{labels:{color:'#888',font:{size:11}}}},
       scales:{
         x:{grid:{display:false},ticks:{color:'#555',font:{size:10},maxRotation:45}},
-        y:{
-          beginAtZero:true,
-          suggestedMax:yMax,
-          grace:'6%',
-          grid:{display:true,color:'rgba(255,255,255,0.06)',drawTicks:false},
-          border:{display:false},
-          ticks:{
-            color:'#8E8E93',
-            font:{size:10},
-            maxTicksLimit:6,
-            callback:(v)=>'฿'+fmt(Number(v)||0)
-          }
-        }
+        y:{display:false,grid:{display:false}}
       }
     }
   });
@@ -1989,7 +1853,6 @@ function showPage(id,btn){
 
 // ── RENDER ALL ────────────────────────────────────────────
 function renderAll(){renderOverview();
-  renderRecentIncome();
   // trend/peak charts ไม่ render ตอน init เพราะ canvas display:none → size=0
   // จะ render ตอน showPage() แทน
 }
@@ -2175,9 +2038,7 @@ function renderTrend(){
   }
   if(trendChart)trendChart.destroy();
   const ctx=document.getElementById('trend-chart').getContext('2d');
-  const trendMax=Math.max(...values,0);
-  const trendHeadroom=trendMax>0?Math.ceil(trendMax*0.12):100;
-  trendChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{data:values,borderColor:'#FF9F0A',borderWidth:3,tension:0.4,fill:true,backgroundColor:'rgba(255,159,10,0.07)',pointRadius:3,pointHoverRadius:5,pointBackgroundColor:'#FF9F0A'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`฿${fmt(c.parsed.y||0)}`}}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:11}}},y:{beginAtZero:true,suggestedMax:trendMax+trendHeadroom,grace:'5%',grid:{display:true,color:'rgba(255,255,255,0.06)',drawTicks:false},border:{display:false},ticks:{color:'#8E8E93',font:{size:10},maxTicksLimit:6,callback:(v)=>'฿'+fmt(Number(v)||0)}}}}});
+  trendChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{data:values,borderColor:'#FF9F0A',borderWidth:3,tension:0.4,fill:true,backgroundColor:'rgba(255,159,10,0.07)',pointRadius:2,pointBackgroundColor:'#FF9F0A'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:11}}},y:{display:false}}}});
   document.getElementById('trend-table').innerHTML=tableRows.map(r=>`<div class="list-row"><span class="ddate">${r.label}</span><span class="dval">฿${fmt(r.val)}</span></div>`).join('');
   renderPlatformBars('trend-platform',s.platformRev,s.platformCnt,total,s.posPayment);
   renderWeekdayBars('trend-weekday',s.byWeekday);
@@ -2287,10 +2148,11 @@ function renderPlatformBars(elId,platformRev,platformCnt,totalRev,posPayment){
       if(pp.other>0&&(pp.cash+pp.transfer+pp.qr+pp.card)===0) parts.push(`<span title="ไม่ระบุ">❓</span>`);
       if(parts.length) posDetail=`<div style="font-size:10px;color:var(--dim);margin-top:3px;display:flex;gap:8px">${parts.join('')}</div>`;
     }
+    const avg=platformCnt[k]>0?Math.round(platformRev[k]/platformCnt[k]):0;
     return`<div class="list-row" style="flex-wrap:wrap">
       <div class="pname" style="color:${color}">${label[k]}</div>
       <div class="bar-w"><div class="bar-f" style="width:${pct}%;background:${color}"></div></div>
-      <div class="pright"><div class="pval" style="color:${color}">฿${fmt(platformRev[k])}</div><div class="psub">${platformCnt[k]} บิล · ${share}%</div></div>
+      <div class="pright"><div class="pval" style="color:${color}">฿${fmt(platformRev[k])}</div><div class="psub">${platformCnt[k]} บิล · ${share}% · <span style="color:var(--fg)">฿${fmt(avg)}/บิล</span></div></div>
       ${posDetail?`<div style="width:100%;padding-left:60px">${posDetail}</div>`:''}
     </div>`;
   }).join('');
@@ -2579,7 +2441,6 @@ async function saveOcrItems(){
     const chk=document.getElementById(`ocr-chk-${i}`);
     if(!chk?.checked) return;
     const itemName=document.getElementById(`ocr-name-${i}`)?.value||item.item;
-    const cat=document.getElementById(`ocr-cat-${i}`)?.value||guessCategory(itemName||'');
     const qty=parseFloat(document.getElementById(`ocr-qty-${i}`)?.value)||null;
     const unit=document.getElementById(`ocr-unit-${i}`)?.value||item.unit||null;
     const ppu=parseFloat(document.getElementById(`ocr-ppu-${i}`)?.value)||null;
