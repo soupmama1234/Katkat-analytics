@@ -2138,6 +2138,7 @@ function renderPeak(){
 // ── COMPUTE ───────────────────────────────────────────────
 function computeFrom(orders){
   const dailyMap={},menuCount={},menuRev={},catRev={},catCnt={},platformRev={},platformCnt={};
+  const typeRev={dine_in:0,takeaway:0},typeCnt={dine_in:0,takeaway:0};
   const byHour=Array.from({length:24},(_,i)=>({hour:i,orders:0,revenue:0}));
   const byWeekday=Array(7).fill(null).map(()=>({rev:0,cnt:0}));
   // pos payment breakdown: {cash, transfer, card, qr, other}
@@ -2148,6 +2149,11 @@ function computeFrom(orders){
     if(localDate)dailyMap[localDate]=(dailyMap[localDate]||0)+actual;
     const ch=(r.channel||'pos').toLowerCase();
     platformRev[ch]=(platformRev[ch]||0)+actual;platformCnt[ch]=(platformCnt[ch]||0)+1;
+    
+    // track order type
+    const ty=r.order_type||'dine_in';
+    if(typeRev[ty]!==undefined){typeRev[ty]+=actual;typeCnt[ty]++;}
+
     // track pos payment method
     if(ch==='pos'&&actual>0){
       const pm=(r.payment||'').toLowerCase();
@@ -2167,7 +2173,7 @@ function computeFrom(orders){
     if(!Array.isArray(items))return;
     items.forEach(item=>{const n=item.name||'ไม่ระบุ';const q=Number(item.qty||1);const p=Number(item.price||0);const cat=catMap[n]||item.category||'ทั่วไป';menuCount[n]=(menuCount[n]||0)+q;menuRev[n]=(menuRev[n]||0)+(p*q);catRev[cat]=(catRev[cat]||0)+(p*q);catCnt[cat]=(catCnt[cat]||0)+q;});
   });
-  return{dailyMap,menuCount,menuRev,catRev,catCnt,platformRev,platformCnt,byHour,byWeekday,posPayment};
+  return{dailyMap,menuCount,menuRev,catRev,catCnt,platformRev,platformCnt,byHour,byWeekday,posPayment,typeRev,typeCnt};
 }
 
 // ── HELPERS ───────────────────────────────────────────────
