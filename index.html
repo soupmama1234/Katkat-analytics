@@ -697,7 +697,10 @@
 
           <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
             <div style="font-size:13px;font-weight:700">🥩 วัตถุดิบหลัก</div>
-            <button onclick="addIngredientRow()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:4px 12px;color:var(--primary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">+ เพิ่ม</button>
+            <div style="display:flex;gap:6px">
+              <button onclick="ocrRecipeOpen()" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid #4D96FF44;border-radius:8px;padding:4px 12px;color:#4D96FF;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">📸 สแกนสูตร</button>
+              <button onclick="addIngredientRow()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:4px 12px;color:var(--primary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">+ เพิ่ม</button>
+            </div>
           </div>
           <div id="ingredient-rows"></div>
 
@@ -2194,6 +2197,7 @@ document.addEventListener('click',e=>{
 // ── OCR ───────────────────────────────────────────────────
 const GEMINI_MODEL='gemini-2.5-flash';
 let geminiKey='';
+let ocrMode='expense'; // 'expense' or 'recipe'
 
 function initApiKey(){
   geminiKey=localStorage.getItem('gemini_api_key')||'';
@@ -2219,7 +2223,8 @@ function saveApiKey(){
 // ── OCR CAMERA (live preview) ────────────────────────────
 let _ocrStream=null;
 
-async function ocrCameraOpen(){
+async function ocrCameraOpen(mode='expense'){
+  ocrMode=mode;
   const wrap=document.getElementById('ocr-camera-wrap');
   const video=document.getElementById('ocr-video');
   const btn=document.getElementById('ocr-btn');
@@ -2229,17 +2234,33 @@ async function ocrCameraOpen(){
     });
     video.srcObject=_ocrStream;
     wrap.style.display='block';
-    btn.style.display='none';
+    if(btn) btn.style.display='none';
   }catch(e){
     // fallback → เปิด file picker แทน
     document.getElementById('ocr-input').click();
   }
 }
 
+function ocrRecipeOpen(){
+  ocrMode='recipe';
+  // ย้าย OCR UI ไปไว้ใน Recipe Modal เพื่อให้เห็น Preview
+  const ocrWrap = document.getElementById('ocr-camera-wrap');
+  const ocrRes = document.getElementById('ocr-result');
+  const ocrPre = document.getElementById('ocr-preview');
+  const modalContent = document.getElementById('recipe-modal').firstElementChild;
+  if(!modalContent.contains(ocrWrap)){
+    modalContent.insertBefore(ocrRes, modalContent.querySelector('.btn-submit'));
+    modalContent.insertBefore(ocrPre, ocrRes);
+    modalContent.insertBefore(ocrWrap, ocrPre);
+  }
+  ocrCameraOpen('recipe');
+}
+
 function ocrCameraClose(){
   if(_ocrStream){_ocrStream.getTracks().forEach(t=>t.stop());_ocrStream=null;}
   document.getElementById('ocr-camera-wrap').style.display='none';
-  document.getElementById('ocr-btn').style.display='block';
+  const btn=document.getElementById('ocr-btn');
+  if(btn) btn.style.display='block';
 }
 
 function ocrCapture(){
@@ -2251,7 +2272,7 @@ function ocrCapture(){
   ocrCameraClose();
   // แปลง canvas → blob แล้วส่ง pipeline เดิม
   canvas.toBlob(blob=>{
-    const fakeInput={files:[new File([blob],'receipt.jpg',{type:'image/jpeg'})]};
+    const fakeInput={files:[new File([blob],'capture.jpg',{type:'image/jpeg'})]};
     handleOcrImage(fakeInput);
   },'image/jpeg',0.92);
 }
@@ -2264,8 +2285,10 @@ async function handleOcrImage(input){
   if(preview){preview.src=URL.createObjectURL(file);preview.style.display='block';}
 
   const btn=document.getElementById('ocr-btn');
-  btn.disabled=true;
-  btn.innerHTML='<span style="font-size:18px">⏳</span> กำลังอ่านใบเสร็จ...';
+  if(btn){
+    btn.disabled=true;
+    btn.innerHTML=`<span style="font-size:18px">⏳</span> กำลังอ่าน${ocrMode==='recipe'?'สูตร':'ใบเสร็จ'}...`;
+  }
   document.getElementById('ocr-result').style.display='none';
 
   try{
@@ -2293,8 +2316,19 @@ async function handleOcrImage(input){
     });
     // ────────────────────────────────────────────────────
 
-    const knownItems=itemHistory.length?'\nรายการวัตถุดิบที่เคยซื้อในระบบ (ใช้ match ชื่อถ้าตรงหรือใกล้เคียง): '+itemHistory.slice(0,40).join(', '):'';
-    const prompt='คุณคือระบบอ่านใบเสร็จสำหรับร้านอาหารไทย (ร้านคัตสึ) อ่านใบเสร็จ/บิลซื้อวัตถุดิบนี้ให้ครบถ้วน'+knownItems+'\n\nreturn JSON array เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown\nformat: [{"item":"ชื่อสินค้า","quantity":จำนวน,"unit":"หน่วย","amount":ราคารวม,"vendor":"ชื่อร้าน","date":"YYYY-MM-DD"}]\n\nกฎสำคัญ:\n- item: ชื่อวัตถุดิบ/สินค้า ถ้าตรงหรือใกล้เคียงรายการในระบบให้ใช้ชื่อในระบบ\n- quantity: น้ำหนักหรือจำนวนเป็นตัวเลข (ไม่มีหน่วย)\n- unit: เช่น kg/g/ชิ้น/แพ็ค/กก/ถุง\n- amount: ราคารวมของรายการนั้น เป็นตัวเลขไม่มีสัญลักษณ์\n- vendor: ชื่อร้าน/ซัพพลายเออร์จากหัวบิล\n- date: YYYY-MM-DD ถ้าไม่มีใส่ null\n- แตกรายการหลายชิ้นเป็น array หลาย object\n- ถ้าอ่านไม่ออกหรือไม่ใช่ใบเสร็จให้ return []';
+    let prompt = '';
+    if(ocrMode==='recipe'){
+      prompt = 'คุณคือระบบอ่านสูตรอาหาร (Recipe OCR) สกัดรายการวัตถุดิบและปริมาณจากรูปภาพนี้ให้ครบถ้วน\n\n' +
+               'return JSON array เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown\n' +
+               'format: [{"item":"ชื่อวัตถุดิบ","quantity":จำนวน,"unit":"หน่วย"}]\n\n' +
+               'กฎสำคัญ:\n- item: ชื่อวัตถุดิบ\n- quantity: จำนวนเป็นตัวเลข\n- unit: เช่น g, kg, ชิ้น, ถ้วย, ช้อนโต๊ะ\n- ถ้าอ่านไม่ออกหรือไม่ใช่สูตรให้ return []';
+    } else {
+      const knownItems=itemHistory.length?'\nรายการวัตถุดิบที่เคยซื้อในระบบ (ใช้ match ชื่อถ้าตรงหรือใกล้เคียง): '+itemHistory.slice(0,40).join(', '):'';
+      prompt = 'คุณคือระบบอ่านใบเสร็จสำหรับร้านอาหารไทย (ร้านคัตสึ) อ่านใบเสร็จ/บิลซื้อวัตถุดิบนี้ให้ครบถ้วน'+knownItems+'\n\n' +
+               'return JSON array เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown\n' +
+               'format: [{"item":"ชื่อสินค้า","quantity":จำนวน,"unit":"หน่วย","amount":ราคารวม,"vendor":"ชื่อร้าน","date":"YYYY-MM-DD"}]\n\n' +
+               'กฎสำคัญ:\n- item: ชื่อวัตถุดิบ/สินค้า ถ้าตรงหรือใกล้เคียงรายการในระบบให้ใช้ชื่อในระบบ\n- quantity: น้ำหนักหรือจำนวนเป็นตัวเลข (ไม่มีหน่วย)\n- unit: เช่น kg/g/ชิ้น/แพ็ค/กก/ถุง\n- amount: ราคารวมของรายการนั้น เป็นตัวเลขไม่มีสัญลักษณ์\n- vendor: ชื่อร้าน/ซัพพลายเออร์จากหัวบิล\n- date: YYYY-MM-DD ถ้าไม่มีใส่ null\n- แตกรายการหลายชิ้นเป็น array หลาย object\n- ถ้าอ่านไม่ออกหรือไม่ใช่ใบเสร็จให้ return []';
+    }
 
     const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`,{
       method:'POST',
@@ -2322,19 +2356,22 @@ async function handleOcrImage(input){
     showToast('❌ '+err.message,'err');
     console.error(err);
   }finally{
-    btn.disabled=false;
-    btn.innerHTML='<span style="font-size:22px">📷</span> ถ่ายรูป / เลือกรูปใบเสร็จ';
+    if(btn){
+      btn.disabled=false;
+      btn.innerHTML='<span style="font-size:22px">📷</span> ถ่ายรูป / เลือกรูปใบเสร็จ';
+    }
     input.value='';
   }
 }
 
 function renderOcrResult(items){
   const catOptions=EXP_CATS.map(c=>`<option value="${c.key}">${c.icon} ${c.key}</option>`).join('');
+  const isRecipe = ocrMode==='recipe';
+  
   document.getElementById('ocr-items-list').innerHTML=items.map((item,i)=>{
     const ppu=item.quantity&&item.amount?Math.round((item.amount/item.quantity)*100)/100:null;
     return `
     <div class="ocr-item" id="ocr-item-${i}" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 0">
-      <!-- row 1: checkbox + ชื่อ + category -->
       <div style="display:flex;align-items:center;gap:8px">
         <input type="checkbox" class="ocr-check" id="ocr-chk-${i}" checked style="flex-shrink:0">
         <div style="position:relative;flex:1;min-width:0">
@@ -2343,47 +2380,53 @@ function renderOcrResult(items){
             oninput="ocrNameSuggest(${i})" autocomplete="off">
           <div id="ocr-ac-${i}" class="ac-list" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;max-height:160px;overflow-y:auto"></div>
         </div>
-        <select class="ocr-cat-select" id="ocr-cat-${i}" style="flex-shrink:0;font-size:11px;padding:4px 6px;max-width:110px">${catOptions}</select>
+        ${!isRecipe ? `<select class="ocr-cat-select" id="ocr-cat-${i}" style="flex-shrink:0;font-size:11px;padding:4px 6px;max-width:110px">${catOptions}</select>` : ''}
       </div>
-      <!-- row 2: qty | unit | ppu -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:5px;padding-left:26px">
+      <div style="display:grid;grid-template-columns:${isRecipe ? '1fr 1fr' : '1fr 1fr 1.2fr'};gap:5px;padding-left:26px">
         <div>
           <div style="font-size:9px;color:var(--dim);margin-bottom:2px">จำนวน</div>
           <input type="number" id="ocr-qty-${i}" value="${item.quantity||''}" placeholder="-"
             class="form-input" style="padding:6px;font-size:13px;text-align:center"
-            oninput="ocrCalcPpu(${i})">
+            oninput="${isRecipe ? '' : `ocrCalcPpu(${i})`}">
         </div>
         <div>
           <div style="font-size:9px;color:var(--dim);margin-bottom:2px">หน่วย</div>
           <input type="text" id="ocr-unit-${i}" value="${item.unit||''}" placeholder="-"
             class="form-input" style="padding:6px;font-size:13px;text-align:center">
         </div>
+        ${!isRecipe ? `
         <div>
           <div style="font-size:9px;color:var(--dim);margin-bottom:2px">฿/หน่วย</div>
           <input type="number" id="ocr-ppu-${i}" value="${ppu||''}" placeholder="-"
             class="form-input" style="padding:6px;font-size:13px;text-align:center;color:var(--primary);font-weight:700"
             oninput="ocrCalcTotal(${i})">
-        </div>
+        </div>` : ''}
       </div>
-      <!-- row 3: ยอดรวม + vendor + date -->
+      ${!isRecipe ? `
       <div style="display:flex;align-items:center;gap:6px;padding-left:26px">
         <span style="font-size:10px;color:var(--dim);flex-shrink:0">ยอดรวม ฿</span>
         <input type="number" id="ocr-amt-${i}" value="${item.amount||''}" placeholder="฿"
           class="form-input" style="flex:1;padding:6px;font-size:14px;font-weight:800;color:var(--success)"
           oninput="ocrCalcPpuReverse(${i})">
         ${item.vendor||item.date?`<span style="font-size:10px;color:var(--dim);flex-shrink:0">${[item.vendor,item.date].filter(Boolean).join(' · ')}</span>`:''}
-      </div>
+      </div>` : ''}
     </div>`;
   }).join('');
 
-  items.forEach((item,i)=>{
-    const sel=document.getElementById(`ocr-cat-${i}`);
-    if(sel) sel.value=guessCategory(item.item||'');
-  });
+  if(!isRecipe){
+    items.forEach((item,i)=>{
+      const sel=document.getElementById(`ocr-cat-${i}`);
+      if(sel) sel.value=guessCategory(item.item||'');
+    });
+  }
 
   window._ocrItems=items;
-  document.getElementById('ocr-result').style.display='block';
-  document.getElementById('ocr-result').scrollIntoView({behavior:'smooth',block:'nearest'});
+  const resDiv = document.getElementById('ocr-result');
+  resDiv.style.display='block';
+  resDiv.scrollIntoView({behavior:'smooth',block:'nearest'});
+  
+  const saveBtn = resDiv.querySelector('.btn-ocr-save');
+  saveBtn.textContent = isRecipe ? '➕ เติมในสูตรอาหาร' : '💾 บันทึกที่เลือก';
 }
 
 function ocrNameSuggest(i){
@@ -2436,26 +2479,34 @@ function guessCategory(item){
 
 async function saveOcrItems(){
   const items=window._ocrItems||[];
+  const isRecipe = ocrMode==='recipe';
   const toSave=[];
+  
   items.forEach((item,i)=>{
     const chk=document.getElementById(`ocr-chk-${i}`);
     if(!chk?.checked) return;
     const itemName=document.getElementById(`ocr-name-${i}`)?.value||item.item;
     const qty=parseFloat(document.getElementById(`ocr-qty-${i}`)?.value)||null;
     const unit=document.getElementById(`ocr-unit-${i}`)?.value||item.unit||null;
-    const ppu=parseFloat(document.getElementById(`ocr-ppu-${i}`)?.value)||null;
-    const amt=parseFloat(document.getElementById(`ocr-amt-${i}`)?.value)||item.amount||0;
-    toSave.push({
-      date:item.date||todayStr,
-      item:itemName,
-      category:cat,
-      quantity:qty,
-      unit:unit,
-      price_per_unit:ppu||(qty&&amt?Math.round((amt/qty)*100)/100:null),
-      amount:amt,
-      vendor:item.vendor||null,
-      note:'ocr',
-    });
+    
+    if(isRecipe){
+      toSave.push({item:itemName, qty, unit});
+    } else {
+      const ppu=parseFloat(document.getElementById(`ocr-ppu-${i}`)?.value)||null;
+      const amt=parseFloat(document.getElementById(`ocr-amt-${i}`)?.value)||item.amount||0;
+      const cat=document.getElementById(`ocr-cat-${i}`)?.value||'อื่นๆ';
+      toSave.push({
+        date:item.date||todayStr,
+        item:itemName,
+        category:cat,
+        quantity:qty,
+        unit:unit,
+        price_per_unit:ppu||(qty&&amt?Math.round((amt/qty)*100)/100:null),
+        amount:amt,
+        vendor:item.vendor||null,
+        note:'ocr',
+      });
+    }
   });
 
   if(!toSave.length){showToast('ไม่มีรายการที่เลือก','err');return;}
@@ -2465,20 +2516,30 @@ async function saveOcrItems(){
   btn.disabled=true;
 
   try{
-    const{error}=await sb.from('expenses').insert(toSave);
-    if(error) throw error;
-    const{data}=await sb.from('expenses').select('*').order('date',{ascending:false}).limit(toSave.length+10);
-    if(data) allExpenses=[...data.filter(d=>!allExpenses.find(e=>e.id===d.id)),...allExpenses];
-    toSave.forEach(e=>{
-      if(e.item&&!itemHistory.includes(e.item)) itemHistory.push(e.item);
-      if(e.vendor&&!vendorHistory.includes(e.vendor)) vendorHistory.push(e.vendor);
-    });
-    showToast(`✅ บันทึก ${toSave.length} รายการแล้ว`);
+    if(isRecipe){
+      // เติมลงใน modal
+      toSave.forEach(s => addIngredientRow(s.item, s.qty, s.unit));
+      setTimeout(()=>{
+        document.querySelectorAll('#ingredient-rows .ing-row').forEach(row=>updateIngRow(row));
+        updateCostPreview();
+      },50);
+      showToast(`✨ เติม ${toSave.length} รายการลงในสูตรแล้ว`);
+    } else {
+      const{error}=await sb.from('expenses').insert(toSave);
+      if(error) throw error;
+      const{data}=await sb.from('expenses').select('*').order('date',{ascending:false}).limit(toSave.length+10);
+      if(data) allExpenses=[...data.filter(d=>!allExpenses.find(e=>e.id===d.id)),...allExpenses];
+      toSave.forEach(e=>{
+        if(e.item&&!itemHistory.includes(e.item)) itemHistory.push(e.item);
+        if(e.vendor&&!vendorHistory.includes(e.vendor)) vendorHistory.push(e.vendor);
+      });
+      showToast(`✅ บันทึก ${toSave.length} รายการลง Expenses แล้ว`);
+    }
     clearOcr();
   }catch(e){
     showToast('❌ '+e.message,'err');
   }finally{
-    btn.textContent='💾 บันทึกที่เลือก';
+    btn.textContent = isRecipe ? '➕ เติมในสูตรอาหาร' : '💾 บันทึกที่เลือก';
     btn.disabled=false;
   }
 }
