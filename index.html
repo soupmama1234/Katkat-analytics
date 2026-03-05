@@ -1439,7 +1439,15 @@ function renderExpAnalysis(){
       plugins:{legend:{labels:{color:'#888',font:{size:11}}}},
       scales:{
         x:{grid:{display:false},ticks:{color:'#555',font:{size:10},maxRotation:45}},
-        y:{display:false,grid:{display:false}}
+        y:{
+          display:true,
+          grid:{color:'rgba(255,255,255,0.05)'},
+          ticks:{
+            color:'#555',
+            font:{size:9},
+            callback:v=>'฿'+(v>=1000?(v/1000).toFixed(1)+'k':v)
+          }
+        }
       }
     }
   });
