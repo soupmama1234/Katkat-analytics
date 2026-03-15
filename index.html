@@ -1204,6 +1204,7 @@ function setExpView(v,btn){
   document.getElementById('exp-add').style.display=v==='add'?'block':'none';
   document.getElementById('exp-list').style.display=v==='list'?'block':'none';
   document.getElementById('exp-analysis').style.display=v==='analysis'?'block':'none';
+  document.getElementById('exp-actions').style.display=v==='actions'?'block':'none';
   document.getElementById('exp-backup').style.display=v==='backup'?'block':'none';
   document.querySelectorAll('#top-nav .pill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
