@@ -577,6 +577,35 @@
         <div class="card-list" id="ana-vendor"></div>
       </div>
 
+
+      <!-- ACTION NOTES -->
+      <div id="exp-actions" style="display:none">
+        <div class="form-wrap">
+          <div class="form-title">📝 บันทึก Action / กิจกรรม</div>
+          <div class="form-row">
+            <label class="form-label">วันที่</label>
+            <input type="date" id="action-date" class="form-input">
+          </div>
+          <div class="form-row">
+            <label class="form-label">หมวดหมู่</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="action-cat-pills">
+              <button class="pill active" onclick="setActionCat('general',this)">ทั่วไป</button>
+              <button class="pill" onclick="setActionCat('marketing',this)">📢 โฆษณา</button>
+              <button class="pill" onclick="setActionCat('cost',this)">💸 ต้นทุน</button>
+              <button class="pill" onclick="setActionCat('menu',this)">🍴 เมนู</button>
+              <button class="pill" onclick="setActionCat('ops',this)">⚙️ ปฏิบัติการ</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">รายละเอียด</label>
+            <textarea id="action-content" class="form-input" rows="3" placeholder="เช่น ยิงโฆษณา Facebook ฿500, ปรับลดต้นทุนหมู..." style="resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <button onclick="saveActionNote()" style="width:100%;background:var(--primary);color:#000;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px">+ บันทึก Action</button>
+        </div>
+
+        <div id="action-list" style="margin-top:8px"></div>
+      </div>
+
       <!-- BACKUP -->
       <div id="exp-backup" style="display:none">
         <div class="backup-row">
@@ -585,6 +614,7 @@
         </div>
         <div class="backup-row">
           <button class="backup-btn" onclick="exportCSV('orders')">📥 Export ออเดอร์ CSV</button>
+          <button class="backup-btn" onclick="exportOrderHistory()" style="background:var(--primary);color:#000;border-color:var(--primary);font-weight:800">📊 Export รายการละเอียด</button>
         </div>
       </div>
     </div>
@@ -836,6 +866,7 @@ function initTopNav(){
 function buildForms(){
   // set today date
   document.getElementById('exp-date').value=todayStr;
+  if(document.getElementById('action-date')) document.getElementById('action-date').value=todayStr;
   document.getElementById('inc-date').value=todayStr;
 
   // expense category pills
@@ -1067,6 +1098,7 @@ function copyExpense(idx){
   document.getElementById('exp-unit').value=e.unit||'';
   document.getElementById('exp-vendor').value=e.vendor||'';
   document.getElementById('exp-date').value=todayStr;
+  if(document.getElementById('action-date')) document.getElementById('action-date').value=todayStr;
   if(e.payment_method) document.getElementById('exp-payment').value=e.payment_method;
   // select category
   if(e.category){
@@ -1122,6 +1154,7 @@ function resetExpForm(){
   document.getElementById('exp-ppu-input').value='';
   document.getElementById('ppu-last-hint').style.display='none';
   document.getElementById('exp-date').value=todayStr;
+  if(document.getElementById('action-date')) document.getElementById('action-date').value=todayStr;
   document.getElementById('exp-payment').value='';
   document.getElementById('exp-amount').value='';
   document.getElementById('ppu-display').style.display='none';
@@ -1167,6 +1200,7 @@ async function submitIncome(){
 
 // ── VIEW TOGGLES ──────────────────────────────────────────
 function setExpView(v,btn){
+  if(v==='actions') renderActionNotes();
   document.getElementById('exp-add').style.display=v==='add'?'block':'none';
   document.getElementById('exp-list').style.display=v==='list'?'block':'none';
   document.getElementById('exp-analysis').style.display=v==='analysis'?'block':'none';
@@ -1550,6 +1584,158 @@ function filterExpByPeriod(rows,period){
 function periodLabel(p){return{all:'ทั้งหมด',today:'วันนี้','7d':'7 วันล่าสุด','30d':'30 วันล่าสุด',week:'สัปดาห์นี้',month:'เดือนนี้'}[p]||'ทั้งหมด';}
 
 // ── EXPORT CSV ────────────────────────────────────────────
+
+// ══ ACTION NOTES ══════════════════════════════════════════
+let allActionNotes = [];
+let currentActionCat = 'general';
+
+function setActionCat(cat, btn) {
+  currentActionCat = cat;
+  document.querySelectorAll('#action-cat-pills .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function loadActionNotes() {
+  const { data } = await sb.from('business_notes').select('*').order('note_date', { ascending: false });
+  allActionNotes = data || [];
+}
+
+async function saveActionNote() {
+  const date = document.getElementById('action-date').value;
+  const content = document.getElementById('action-content').value.trim();
+  if (!date) return showToast('กรุณาเลือกวันที่', 'err');
+  if (!content) return showToast('กรุณาใส่รายละเอียด', 'err');
+
+  const { data, error } = await sb.from('business_notes').insert({
+    note_date: date,
+    content,
+    category: currentActionCat,
+  }).select().single();
+
+  if (error) return showToast('❌ ' + error.message, 'err');
+  allActionNotes.unshift(data);
+  document.getElementById('action-content').value = '';
+  renderActionNotes();
+  showToast('✅ บันทึก Action แล้ว');
+}
+
+async function deleteActionNote(id) {
+  if (!confirm('ลบรายการนี้?')) return;
+  const { error } = await sb.from('business_notes').delete().eq('id', id);
+  if (error) return showToast('❌ ' + error.message, 'err');
+  allActionNotes = allActionNotes.filter(n => n.id !== id);
+  renderActionNotes();
+  showToast('ลบแล้ว');
+}
+
+let editingActionId = null;
+async function saveEditAction(id) {
+  const content = document.getElementById('action-edit-' + id).value.trim();
+  if (!content) return;
+  const { error } = await sb.from('business_notes').update({ content }).eq('id', id);
+  if (error) return showToast('❌ ' + error.message, 'err');
+  allActionNotes = allActionNotes.map(n => n.id === id ? { ...n, content } : n);
+  editingActionId = null;
+  renderActionNotes();
+  showToast('✅ แก้ไขแล้ว');
+}
+
+const ACTION_CAT_LABEL = { general: 'ทั่วไป', marketing: '📢 โฆษณา', cost: '💸 ต้นทุน', menu: '🍴 เมนู', ops: '⚙️ ปฏิบัติการ' };
+const ACTION_CAT_COLOR = { general: '#666', marketing: '#FF9F0A', cost: '#FF453A', menu: '#4caf50', ops: '#4D96FF' };
+
+function renderActionNotes() {
+  const el = document.getElementById('action-list');
+  if (!el) return;
+  if (!allActionNotes.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--dim);padding:32px;font-size:14px">ยังไม่มี Action — บันทึกด้านบนได้เลย</div>';
+    return;
+  }
+  el.innerHTML = allActionNotes.map(n => {
+    const catColor = ACTION_CAT_COLOR[n.category] || '#666';
+    const catLabel = ACTION_CAT_LABEL[n.category] || n.category;
+    const isEditing = editingActionId === n.id;
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-left:4px solid ${catColor};border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span style="font-weight:800;font-size:14px;color:var(--text)">${n.note_date}</span>
+          <span style="font-size:11px;background:${catColor}22;color:${catColor};padding:2px 8px;border-radius:20px;font-weight:700">${catLabel}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="editingActionId=${n.id};renderActionNotes()" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:2px 6px">✏️</button>
+          <button onclick="deleteActionNote(${n.id})" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:14px;padding:2px 6px">🗑</button>
+        </div>
+      </div>
+      ${isEditing
+        ? `<textarea id="action-edit-${n.id}" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box" rows="3">${n.content}</textarea>
+           <div style="display:flex;gap:8px;margin-top:8px">
+             <button onclick="editingActionId=null;renderActionNotes()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:10px;cursor:pointer">ยกเลิก</button>
+             <button onclick="saveEditAction(${n.id})" style="flex:2;background:var(--primary);color:#000;border:none;border-radius:8px;padding:10px;font-weight:800;cursor:pointer">💾 บันทึก</button>
+           </div>`
+        : `<div style="color:var(--text);font-size:14px;line-height:1.6;white-space:pre-wrap">${n.content}</div>`
+      }
+    </div>`;
+  }).join('');
+}
+
+// ══ EXPORT ORDER HISTORY (DETAILED) ═══════════════════════
+async function exportOrderHistory() {
+  showToast('⏳ กำลัง export...');
+  try {
+    const { data: orders, error } = await sb
+      .from('orders')
+      .select('*, order_items(*)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    if (!orders.length) return showToast('ไม่มีข้อมูล', 'err');
+
+    const rows = [];
+    rows.push(['วันที่', 'เวลา', 'บิล ID', 'ช่องทาง', 'โต๊ะ', 'สมาชิก', 'รายการ', 'ตัวเลือกเสริม', 'จำนวน', 'ราคาต่อชิ้น', 'รวมรายการ', 'ยอดบิล', 'ชำระ', 'สถานะ'].join(','));
+
+    for (const o of orders) {
+      const dt = new Date(o.created_at);
+      const dateStr = dt.toLocaleDateString('th-TH');
+      const timeStr = dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      const items = o.order_items || [];
+
+      if (items.length === 0) {
+        rows.push([dateStr, timeStr, o.id, o.channel||'', o.table_number||'', o.member_phone||'', '', '', '', '', '', o.total||0, o.actual_amount||0, o.status||''].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+      } else {
+        items.forEach((item, i) => {
+          const itemTotal = (item.price + (item.modifier_price || 0)) * item.qty;
+          rows.push([
+            i === 0 ? dateStr : '',
+            i === 0 ? timeStr : '',
+            i === 0 ? o.id : '',
+            i === 0 ? (o.channel||'') : '',
+            i === 0 ? (o.table_number||'') : '',
+            i === 0 ? (o.member_phone||'') : '',
+            item.name || '',
+            item.modifier_name || '',
+            item.qty || 1,
+            item.price || 0,
+            itemTotal,
+            i === 0 ? (o.total||0) : '',
+            i === 0 ? (o.actual_amount||0) : '',
+            i === 0 ? (o.status||'') : '',
+          ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+        });
+      }
+    }
+
+    const csv = rows.join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `order_history_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Export สำเร็จ');
+  } catch (e) {
+    showToast('❌ ' + e.message, 'err');
+  }
+}
+
 async function exportCSV(table){
   showToast('⏳ กำลัง export...');
   const{data,error}=await sb.from(table).select('*').order('created_at',{ascending:false});
@@ -1830,6 +2016,7 @@ const TOP_NAV={
     <button class="pill active" onclick="setExpView('add',this)">➕ บันทึก</button>
     <button class="pill" onclick="setExpView('list',this)">📋 รายการ</button>
     <button class="pill" onclick="setExpView('analysis',this)">📊 วิเคราะห์</button>
+    <button class="pill" onclick="setExpView('actions',this)">📝 Action</button>
     <button class="pill" onclick="setExpView('backup',this)">💾 Backup</button>
   </div>`,
   recipe:`<div class="pills" style="margin-bottom:0">
@@ -1860,6 +2047,7 @@ function showPage(id,btn){
 }
 
 // ── RENDER ALL ────────────────────────────────────────────
+loadActionNotes();
 function renderAll(){renderOverview();
   // trend/peak charts ไม่ render ตอน init เพราะ canvas display:none → size=0
   // จะ render ตอน showPage() แทน
