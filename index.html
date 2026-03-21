@@ -2097,12 +2097,34 @@ const TOP_NAV={
     <button class="pill active" onclick="setIncView('add',this)">➕ บันทึก</button>
     <button class="pill" onclick="setIncView('list',this)">📋 รายการ</button>
   </div>`,
+  customer:`<div style="display:flex;flex-direction:column;gap:6px">
+    <div class="pills" id="cust-presets" style="margin-bottom:0">
+      <button class="pill active" onclick="setCustPeriod('today',this)">วันนี้</button>
+      <button class="pill" onclick="setCustPeriod('7d',this)">7 วัน</button>
+      <button class="pill" onclick="setCustPeriod('30d',this)">30 วัน</button>
+      <button class="pill" onclick="setCustPeriod('all',this)">ทั้งหมด</button>
+      <button class="pill" onclick="setCustPeriod('custom',this)">📅</button>
+    </div>${CUSTOM_ROW('cust-cr','applyCustRange')}</div>`,
 };
 
 
 // ══ CUSTOMER PAGE ═════════════════════════════════════════
 let custPieChart=null, custDailyChart=null, repHourChart=null, newTrendChart=null, newHourChart=null;
 let currentCustTab='overview';
+let custPeriod='today';
+let custFrom=todayStr, custTo=todayStr;
+
+function setCustPeriod(p,btn){
+  custPeriod=p;
+  document.querySelectorAll('#cust-presets .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(p==='custom'){showCR('cust-cr',custFrom,custTo);}
+  else{hideCR('cust-cr');renderCustomerPage();}
+}
+function applyCustRange(){
+  const r=getCR('cust-cr-f','cust-cr-t');custFrom=r.from;custTo=r.to;
+  if(custFrom>custTo)custTo=custFrom;renderCustomerPage();
+}
 
 function setCustTab(tab, btn){
   currentCustTab=tab;
@@ -2129,7 +2151,7 @@ function getCustomerOrders(orders){
 }
 
 function renderCustomerTab(tab){
-  const orders = filterByPeriod(allOrders,'all').filter(o=>o.channel==='pos');
+  const orders = (custPeriod==='custom' ? filterByRange(allOrders,custFrom,custTo) : filterByPeriod(allOrders,custPeriod)).filter(o=>o.channel==='pos');
   const {member, nonMember, newOrders, repeatOrders, unknownOrders} = getCustomerOrders(orders);
 
   if(tab==='overview') renderCustOverview(orders, member, newOrders, repeatOrders, unknownOrders);
@@ -2319,7 +2341,7 @@ function renderCustNew(newOrders){
 }
 
 function renderOverviewCustomerSummary(){
-  const todayOrders=filterByPeriod(allOrders,'today').filter(o=>o.channel==='pos');
+  const todayOrders=(ovPeriod==='custom'?filterByRange(allOrders,ovFrom,ovTo):filterByPeriod(allOrders,ovPeriod)).filter(o=>o.channel==='pos');
   const {member,newOrders,repeatOrders,unknownOrders}=getCustomerOrders(todayOrders);
   const total=todayOrders.length||1;
   const pct=n=>Math.round(n/total*100);
