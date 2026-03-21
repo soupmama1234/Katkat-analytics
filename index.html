@@ -248,6 +248,17 @@
       cursor:pointer;transition:all .2s}
     .cat-suggest-chip:active{background:rgba(255,159,10,0.3)}
 
+
+    /* CUSTOMER PAGE */
+    .cust-tabs{display:flex;gap:6px;margin-bottom:14px}
+    .cust-tab{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--dim);
+      font-family:inherit;font-size:12px;font-weight:600;padding:8px 4px;
+      border-radius:12px;cursor:pointer;transition:all .2s;text-align:center}
+    .cust-tab.active{background:var(--primary);color:#000;border-color:var(--primary)}
+    .donut-wrap{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+    .donut-legend{display:flex;flex-direction:column;gap:6px;flex:1}
+    .legend-row{display:flex;align-items:center;gap:8px;font-size:12px}
+    .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
     /* RECIPE */
     .recipe-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;
       padding:14px 16px;margin-bottom:10px}
@@ -359,6 +370,8 @@
       <div class="card-list" id="ov-items-list"></div>
       <div class="sec">📅 ประวัติรายวัน</div>
       <div class="card-list" id="ov-daily"></div>
+      <div class="sec">👥 ประเภทลูกค้า (วันนี้)</div>
+      <div class="card-list" id="ov-customer-summary"></div>
     </div>
 
     <!-- ══ TREND ══ -->
@@ -744,6 +757,61 @@
       </div>
     </div>
 
+
+    <!-- ══ CUSTOMER ══ -->
+    <div id="page-customer" class="page">
+      <!-- mini summary ใน overview จะ inject ที่นี่ด้วย -->
+      <div class="cust-tabs">
+        <button class="cust-tab active" onclick="setCustTab('overview',this)">📊 ภาพรวม</button>
+        <button class="cust-tab" onclick="setCustTab('repeat',this)">🔄 ประจำ</button>
+        <button class="cust-tab" onclick="setCustTab('new',this)">🆕 ใหม่</button>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div id="cust-overview">
+        <div class="grid2" style="margin-bottom:12px">
+          <div class="scard"><div class="scard-lbl">👤 Member</div><div class="scard-val" id="cust-member-cnt" style="color:var(--primary)">0</div></div>
+          <div class="scard"><div class="scard-lbl">🚶 Non-Member</div><div class="scard-val" id="cust-nonmember-cnt">0</div></div>
+          <div class="scard"><div class="scard-lbl">🆕 ใหม่</div><div class="scard-val" id="cust-new-cnt" style="color:var(--success)">0</div></div>
+          <div class="scard"><div class="scard-lbl">🔄 ประจำ</div><div class="scard-val" id="cust-repeat-cnt" style="color:#4D96FF">0</div></div>
+        </div>
+        <div class="sec" style="margin-top:0">สัดส่วนลูกค้า</div>
+        <div class="chart-box" style="height:200px"><canvas id="cust-pie-chart"></canvas></div>
+        <div class="sec">📅 ลูกค้าแต่ละประเภทรายวัน</div>
+        <div class="chart-box" style="height:200px"><canvas id="cust-daily-chart"></canvas></div>
+        <div class="sec">💰 ยอดเฉลี่ยต่อบิล แยกประเภท</div>
+        <div class="card-list" id="cust-avg-list"></div>
+      </div>
+
+      <!-- REPEAT TAB -->
+      <div id="cust-repeat" style="display:none">
+        <div class="grid2" style="margin-bottom:12px">
+          <div class="scard"><div class="scard-lbl">บิลทั้งหมด</div><div class="scard-val" id="rep-cnt" style="color:#4D96FF">0</div></div>
+          <div class="scard"><div class="scard-lbl">ยอดเฉลี่ย/บิล</div><div class="scard-val" id="rep-avg">฿0</div></div>
+        </div>
+        <div class="sec" style="margin-top:0">⏰ ช่วงเวลาที่มา</div>
+        <div class="chart-box" style="height:180px"><canvas id="rep-hour-chart"></canvas></div>
+        <div class="sec">📅 วันในสัปดาห์</div>
+        <div class="card-list" id="rep-weekday-list"></div>
+        <div class="sec">📋 บิลล่าสุด</div>
+        <div class="card-list" id="rep-orders-list"></div>
+      </div>
+
+      <!-- NEW TAB -->
+      <div id="cust-new" style="display:none">
+        <div class="grid2" style="margin-bottom:12px">
+          <div class="scard"><div class="scard-lbl">บิลทั้งหมด</div><div class="scard-val" id="new-cnt" style="color:var(--success)">0</div></div>
+          <div class="scard"><div class="scard-lbl">ยอดเฉลี่ย/บิล</div><div class="scard-val" id="new-avg">฿0</div></div>
+        </div>
+        <div class="sec" style="margin-top:0">📈 แนวโน้มลูกค้าใหม่รายวัน</div>
+        <div class="chart-box" style="height:180px"><canvas id="new-trend-chart"></canvas></div>
+        <div class="sec">⏰ ช่วงเวลาที่มา</div>
+        <div class="chart-box" style="height:160px"><canvas id="new-hour-chart"></canvas></div>
+        <div class="sec">📋 บิลล่าสุด</div>
+        <div class="card-list" id="new-orders-list"></div>
+      </div>
+    </div>
+
   </div><!-- end scroll-area -->
 
   <!-- BOTTOM NAV -->
@@ -754,6 +822,7 @@
     <button class="bnav-btn" onclick="showPage('expenses',this)"><span class="icon">💸</span>ต้นทุน</button>
     <button class="bnav-btn" onclick="showPage('recipe',this)"><span class="icon">🍳</span>สูตร</button>
     <button class="bnav-btn" onclick="showPage('income',this)"><span class="icon">💚</span>รายได้อื่น</button>
+    <button class="bnav-btn" onclick="showPage('customer',this)"><span class="icon">👥</span>ลูกค้า</button>
   </nav>
 </div>
 
@@ -2030,6 +2099,244 @@ const TOP_NAV={
   </div>`,
 };
 
+
+// ══ CUSTOMER PAGE ═════════════════════════════════════════
+let custPieChart=null, custDailyChart=null, repHourChart=null, newTrendChart=null, newHourChart=null;
+let currentCustTab='overview';
+
+function setCustTab(tab, btn){
+  currentCustTab=tab;
+  ['overview','repeat','new'].forEach(t=>{
+    document.getElementById('cust-'+t).style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('.cust-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCustomerTab(tab);
+}
+
+function renderCustomerPage(){
+  renderCustomerTab(currentCustTab);
+  renderOverviewCustomerSummary();
+}
+
+function getCustomerOrders(orders){
+  const member = orders.filter(o=>o.member_phone);
+  const nonMember = orders.filter(o=>!o.member_phone);
+  const newOrders = nonMember.filter(o=>o.customer_type==='new');
+  const repeatOrders = nonMember.filter(o=>o.customer_type==='repeat');
+  const unknownOrders = nonMember.filter(o=>!o.customer_type);
+  return{member, nonMember, newOrders, repeatOrders, unknownOrders};
+}
+
+function renderCustomerTab(tab){
+  const orders = filterByPeriod(allOrders,'all').filter(o=>o.channel==='pos');
+  const {member, nonMember, newOrders, repeatOrders, unknownOrders} = getCustomerOrders(orders);
+
+  if(tab==='overview') renderCustOverview(orders, member, newOrders, repeatOrders, unknownOrders);
+  if(tab==='repeat') renderCustRepeat(repeatOrders);
+  if(tab==='new') renderCustNew(newOrders);
+}
+
+function renderCustOverview(orders, member, newOrders, repeatOrders, unknownOrders){
+  const total=orders.length||1;
+  document.getElementById('cust-member-cnt').textContent=member.length;
+  document.getElementById('cust-nonmember-cnt').textContent=orders.length-member.length;
+  document.getElementById('cust-new-cnt').textContent=newOrders.length;
+  document.getElementById('cust-repeat-cnt').textContent=repeatOrders.length;
+
+  // ── Pie chart ──
+  if(custPieChart) custPieChart.destroy();
+  const ctx=document.getElementById('cust-pie-chart').getContext('2d');
+  custPieChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['Member','ลูกค้าใหม่','ลูกค้าประจำ','ไม่ระบุ'],
+      datasets:[{
+        data:[member.length, newOrders.length, repeatOrders.length, unknownOrders.length],
+        backgroundColor:['#FF9F0A','#32D74B','#4D96FF','#3a3a3a'],
+        borderWidth:0,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:'#888',font:{size:11},boxWidth:12}},
+      },
+      cutout:'60%',
+    }
+  });
+
+  // ── Daily stacked bar ──
+  const days={};
+  orders.forEach(o=>{
+    const d=new Date(o.created_at).toLocaleDateString('en-CA');
+    if(!days[d]) days[d]={member:0,new:0,repeat:0,unknown:0};
+    if(o.member_phone) days[d].member++;
+    else if(o.customer_type==='new') days[d].new++;
+    else if(o.customer_type==='repeat') days[d].repeat++;
+    else days[d].unknown++;
+  });
+  const sorted=Object.keys(days).sort().slice(-30);
+  if(custDailyChart) custDailyChart.destroy();
+  const ctx2=document.getElementById('cust-daily-chart').getContext('2d');
+  custDailyChart=new Chart(ctx2,{
+    type:'bar',
+    data:{
+      labels:sorted.map(d=>d.slice(5)),
+      datasets:[
+        {label:'Member',data:sorted.map(d=>days[d].member),backgroundColor:'#FF9F0A',borderRadius:2,borderSkipped:false},
+        {label:'ใหม่',data:sorted.map(d=>days[d].new),backgroundColor:'#32D74B',borderRadius:2,borderSkipped:false},
+        {label:'ประจำ',data:sorted.map(d=>days[d].repeat),backgroundColor:'#4D96FF',borderRadius:2,borderSkipped:false},
+        {label:'ไม่ระบุ',data:sorted.map(d=>days[d].unknown),backgroundColor:'#3a3a3a',borderRadius:2,borderSkipped:false},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#888',font:{size:10},boxWidth:10}}},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:9},maxRotation:45}},
+        y:{stacked:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555',font:{size:9}}}
+      }
+    }
+  });
+
+  // ── ยอดเฉลี่ย ──
+  const avgOf=arr=>arr.length?Math.round(arr.reduce((s,o)=>s+(o.actual_amount||0),0)/arr.length):0;
+  const rows=[
+    {label:'👤 Member', color:'#FF9F0A', cnt:member.length, avg:avgOf(member)},
+    {label:'🆕 ลูกค้าใหม่', color:'#32D74B', cnt:newOrders.length, avg:avgOf(newOrders)},
+    {label:'🔄 ลูกค้าประจำ', color:'#4D96FF', cnt:repeatOrders.length, avg:avgOf(repeatOrders)},
+    {label:'❓ ไม่ระบุ', color:'#555', cnt:unknownOrders.length, avg:avgOf(unknownOrders)},
+  ];
+  const maxAvg=Math.max(...rows.map(r=>r.avg),1);
+  document.getElementById('cust-avg-list').innerHTML=rows.map(r=>`
+    <div class="list-row">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:${r.color}">${r.label}</div>
+        <div style="height:4px;background:#1a1a1a;border-radius:2px;margin-top:6px;overflow:hidden">
+          <div style="height:100%;width:${Math.round(r.avg/maxAvg*100)}%;background:${r.color};border-radius:2px"></div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;padding-left:12px">
+        <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700">฿${fmt(r.avg)}</div>
+        <div style="font-size:10px;color:var(--dim)">${r.cnt} บิล</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderCustRepeat(repeatOrders){
+  const cnt=repeatOrders.length;
+  const avg=cnt?Math.round(repeatOrders.reduce((s,o)=>s+(o.actual_amount||0),0)/cnt):0;
+  document.getElementById('rep-cnt').textContent=cnt;
+  document.getElementById('rep-avg').textContent='฿'+fmt(avg);
+
+  // hour chart
+  const byHour=Array(24).fill(0);
+  repeatOrders.forEach(o=>{if(o.created_at) byHour[new Date(o.created_at).getHours()]++;});
+  const maxH=Math.max(...byHour,1);
+  if(repHourChart) repHourChart.destroy();
+  const ctx=document.getElementById('rep-hour-chart').getContext('2d');
+  repHourChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:Array.from({length:24},(_,i)=>i+':00'),
+      datasets:[{data:byHour,backgroundColor:byHour.map(v=>v===maxH?'#4D96FF':'rgba(77,150,255,0.2)'),borderRadius:4,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:9},maxRotation:0}},y:{display:false}}}
+  });
+
+  // weekday list
+  const dayNames=['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์','อาทิตย์'];
+  const byWd=Array(7).fill(0);
+  repeatOrders.forEach(o=>{if(o.created_at){const d=new Date(o.created_at).getDay();byWd[d===0?6:d-1]++;}});
+  const maxW=Math.max(...byWd,1);
+  document.getElementById('rep-weekday-list').innerHTML=byWd.map((v,i)=>`
+    <div class="list-row">
+      <div style="font-size:13px;font-weight:600;width:52px;flex-shrink:0">${dayNames[i]}</div>
+      <div class="bar-w"><div class="bar-f" style="width:${Math.round(v/maxW*100)}%;background:#4D96FF"></div></div>
+      <div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:#4D96FF;flex-shrink:0;min-width:40px;text-align:right">${v} บิล</div>
+    </div>`).join('');
+
+  // recent orders
+  document.getElementById('rep-orders-list').innerHTML=repeatOrders.slice(0,10).map(o=>`
+    <div class="list-row">
+      <div style="flex:1;font-size:12px;color:var(--dim)">
+        ${new Date(o.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
+        ${o.table_number?'· โต๊ะ '+o.table_number:''}
+      </div>
+      <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#4D96FF">฿${fmt(o.actual_amount||0)}</div>
+    </div>`).join('')||'<div class="empty">ยังไม่มีข้อมูล</div>';
+}
+
+function renderCustNew(newOrders){
+  const cnt=newOrders.length;
+  const avg=cnt?Math.round(newOrders.reduce((s,o)=>s+(o.actual_amount||0),0)/cnt):0;
+  document.getElementById('new-cnt').textContent=cnt;
+  document.getElementById('new-avg').textContent='฿'+fmt(avg);
+
+  // trend รายวัน
+  const byDay={};
+  newOrders.forEach(o=>{const d=new Date(o.created_at).toLocaleDateString('en-CA');byDay[d]=(byDay[d]||0)+1;});
+  const sorted=Object.keys(byDay).sort().slice(-30);
+  if(newTrendChart) newTrendChart.destroy();
+  const ctx=document.getElementById('new-trend-chart').getContext('2d');
+  newTrendChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:sorted.map(d=>d.slice(5)),
+      datasets:[{data:sorted.map(d=>byDay[d]),borderColor:'#32D74B',borderWidth:2,tension:0.4,fill:true,backgroundColor:'rgba(50,215,75,0.08)',pointRadius:2}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555',font:{size:9}}}}}
+  });
+
+  // hour chart
+  const byHour=Array(24).fill(0);
+  newOrders.forEach(o=>{if(o.created_at) byHour[new Date(o.created_at).getHours()]++;});
+  const maxH=Math.max(...byHour,1);
+  if(newHourChart) newHourChart.destroy();
+  const ctx2=document.getElementById('new-hour-chart').getContext('2d');
+  newHourChart=new Chart(ctx2,{
+    type:'bar',
+    data:{
+      labels:Array.from({length:24},(_,i)=>i+':00'),
+      datasets:[{data:byHour,backgroundColor:byHour.map(v=>v===maxH?'#32D74B':'rgba(50,215,75,0.2)'),borderRadius:4,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:9},maxRotation:0}},y:{display:false}}}
+  });
+
+  // recent
+  document.getElementById('new-orders-list').innerHTML=newOrders.slice(0,10).map(o=>`
+    <div class="list-row">
+      <div style="flex:1;font-size:12px;color:var(--dim)">
+        ${new Date(o.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
+        ${o.table_number?'· โต๊ะ '+o.table_number:''}
+      </div>
+      <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#32D74B">฿${fmt(o.actual_amount||0)}</div>
+    </div>`).join('')||'<div class="empty">ยังไม่มีข้อมูล</div>';
+}
+
+function renderOverviewCustomerSummary(){
+  const todayOrders=filterByPeriod(allOrders,'today').filter(o=>o.channel==='pos');
+  const {member,newOrders,repeatOrders,unknownOrders}=getCustomerOrders(todayOrders);
+  const total=todayOrders.length||1;
+  const pct=n=>Math.round(n/total*100);
+  document.getElementById('ov-customer-summary').innerHTML=
+    [
+      {label:'👤 Member', cnt:member.length, color:'#FF9F0A'},
+      {label:'🆕 ใหม่', cnt:newOrders.length, color:'#32D74B'},
+      {label:'🔄 ประจำ', cnt:repeatOrders.length, color:'#4D96FF'},
+      {label:'❓ ไม่ระบุ', cnt:unknownOrders.length, color:'#3a3a3a'},
+    ].map(r=>`
+    <div class="list-row">
+      <div style="font-size:13px;font-weight:700;color:${r.color};width:90px;flex-shrink:0">${r.label}</div>
+      <div class="bar-w"><div class="bar-f" style="width:${pct(r.cnt)}%;background:${r.color}"></div></div>
+      <div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:${r.color};flex-shrink:0;min-width:50px;text-align:right">${r.cnt} บิล</div>
+    </div>`).join('');
+}
+
 function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
@@ -2045,6 +2352,7 @@ function showPage(id,btn){
   if(id==='trend') requestAnimationFrame(()=>renderTrend());
   if(id==='recipe') requestAnimationFrame(()=>renderRecipeList());
   if(id==='expenses') requestAnimationFrame(()=>{if(document.getElementById('exp-analysis').style.display!=='none')renderExpAnalysis();});
+  if(id==='customer') requestAnimationFrame(()=>renderCustomerPage());
 }
 
 // ── RENDER ALL ────────────────────────────────────────────
@@ -2117,6 +2425,7 @@ function renderOverview(){
     const mods=Object.entries(d.mods).map(([m,q])=>`⚙️ ${m} ×${q}`).join('  ');
     return`<div class="titem"><div class="tmain"><span class="tname">${n}</span><span class="tqty">×${d.qty}</span></div>${mods?`<div class="tmod">${mods}</div>`:''}</div>`;
   }).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>';
+  renderOverviewCustomerSummary();
   document.getElementById('ov-daily').innerHTML=Object.entries(s.dailyMap).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).map(([d,v])=>`<div class="list-row"><span class="ddate">${new Date(d).toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</span><span class="dval">฿${fmt(v)}</span></div>`).join('');
 }
 
